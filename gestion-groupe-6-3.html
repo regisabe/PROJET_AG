@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cercle — Gestion de groupe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<style>
+:root{
+  --ink:#24221D; --muted:#6B6558; --paper:#F7F5EF; --surface:#FFFFFF;
+  --border:#E4E0D3; --primary:#C2540A; --primary-light:#E07C2E; --primary-dark:#7A3607;
+  --gold:#E8A33D; --gold-light:#F5C878; --danger:#B3452C; --success:#3F7D52;
+  --shadow: 0 1px 2px rgba(36,34,29,.06), 0 4px 16px rgba(36,34,29,.06);
+  color-scheme: light;
+}
+:root[data-theme="dark"]{
+  --ink:#EDE9DD; --muted:#A7A090; --paper:#181712; --surface:#211F19;
+  --border:#33312A; --primary:#E07C2E; --primary-light:#F0A35A; --primary-dark:#5C2A05;
+  --gold:#F0B24E; --gold-light:#F5C878; --danger:#D96A4C; --success:#5AA173;
+  --shadow: 0 1px 2px rgba(0,0,0,.35), 0 4px 20px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink);
+  -webkit-font-smoothing:antialiased; transition:background .2s ease, color .2s ease;
+}
+h1,h2,h3,.display{font-family:'Fraunces',serif;}
+.mono{font-family:'JetBrains Mono',monospace;}
+button{font-family:inherit; cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+::selection{background:var(--gold-light);}
+:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+a{color:inherit;}
+
+/* ---------- Layout ---------- */
+#root{min-height:100vh;}
+.app-shell{display:flex; min-height:100vh;}
+.sidebar{
+  width:230px; background:var(--primary-dark); color:#EFEAD9; flex-shrink:0;
+  display:flex; flex-direction:column; position:sticky; top:0; height:100vh;
+}
+.sidebar-brand{padding:22px 20px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid rgba(255,255,255,.08);}
+.brand-seal{
+  width:34px;height:34px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, var(--gold-light), var(--gold) 60%, #7A3607 100%);
+  display:flex;align-items:center;justify-content:center; color:var(--primary-dark); font-weight:700; font-family:'Fraunces',serif; font-size:15px;
+  flex-shrink:0; box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);
+}
+.brand-text .name{font-family:'Fraunces',serif; font-size:17px; font-weight:600; line-height:1.1;}
+.brand-text .sub{font-size:10.5px; color:#B9C4B9; letter-spacing:.06em; text-transform:uppercase; margin-top:2px;}
+.nav{flex:1; overflow-y:auto; padding:14px 10px;}
+.nav-item{
+  display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; margin-bottom:2px;
+  font-size:13.5px; color:#D9D3C0; text-decoration:none; border:none; background:none; width:100%; text-align:left;
+  transition:background .12s ease, color .12s ease;
+}
+.nav-item:hover{background:rgba(255,255,255,.06); color:#fff;}
+.nav-item.active{background:var(--primary); color:#fff; box-shadow: inset 3px 0 0 var(--gold);}
+.nav-icon{width:16px; text-align:center; opacity:.9; font-size:14px;}
+.sidebar-footer{padding:14px 16px; border-top:1px solid rgba(255,255,255,.08); font-size:12px; color:#AEB8AE;}
+.user-chip{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+.user-avatar{width:26px;height:26px;border-radius:50%;background:var(--primary); display:flex;align-items:center;justify-content:center; font-size:11px; font-weight:600; color:#fff;}
+.logout-btn{background:none;border:none;color:#D9D3C0; font-size:12px; text-decoration:underline; padding:0;}
+
+.main{flex:1; min-width:0; display:flex; flex-direction:column;}
+.topbar{
+  background:var(--surface); padding:14px 28px;
+  display:flex; align-items:center; justify-content:space-between; gap:16px; position:sticky; top:0; z-index:5;
+  border-bottom:1px solid var(--border);
+  position:relative;
+}
+.topbar::after{
+  content:""; position:absolute; left:0; right:0; bottom:-2px; height:2px;
+  background:linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+}
+.topbar-left{display:flex; align-items:center; gap:12px; min-width:0;}
+.topbar-brand-icon{font-size:22px; line-height:1;}
+.page-title{font-size:19px; font-weight:600; display:flex; align-items:center; gap:9px;}
+.page-eyebrow{font-size:10.5px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-weight:700;}
+.page-role{font-size:12px; color:var(--muted); margin-top:1px;}
+.content{padding:24px 28px 60px; flex:1;}
+
+.topbar-right{display:flex; align-items:center; gap:12px; flex-shrink:0;}
+.clock-chip{
+  font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--muted); font-weight:600;
+  letter-spacing:.02em;
+}
+.theme-toggle{
+  width:40px; height:32px; border-radius:99px; border:1px solid var(--border); background:var(--paper);
+  display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;
+}
+.theme-toggle:hover{border-color:var(--gold);}
+.avatar-menu-wrap{position:relative; flex-shrink:0;}
+.avatar-trigger{
+  display:flex; align-items:center; gap:6px; background:none; border:none; padding:2px; border-radius:99px;
+}
+.avatar-circle{
+  width:36px; height:36px; border-radius:50%; background:linear-gradient(155deg, var(--primary), var(--primary-light));
+  color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;
+}
+.avatar-caret{font-size:10px; color:var(--muted);}
+.avatar-dropdown{
+  position:absolute; right:0; top:calc(100% + 8px); background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.16); min-width:190px; z-index:40; overflow:hidden;
+  animation:dropIn .12s ease;
+}
+@keyframes dropIn{from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);}}
+.avatar-dropdown .head{padding:12px 14px; border-bottom:1px solid var(--border);}
+.avatar-dropdown .head .u{font-weight:700; font-size:13.5px;}
+.avatar-dropdown .head .r{font-size:11.5px; color:var(--muted); margin-top:1px;}
+.avatar-dropdown button{
+  display:block; width:100%; text-align:left; padding:10px 14px; font-size:13px; background:none; border:none; color:var(--danger); font-weight:600;
+}
+.avatar-dropdown button:hover{background:var(--paper);}
+.avatar-menu-overlay{position:fixed; inset:0; z-index:35;}
+
+/* ---------- Generic UI ---------- */
+.btn{
+  display:inline-flex; align-items:center; gap:6px; border-radius:7px; border:1px solid transparent;
+  padding:8px 14px; font-size:13px; font-weight:600; transition:all .12s ease;
+}
+.btn-primary{background:var(--primary); color:#fff;}
+.btn-primary:hover{background:var(--primary-light);}
+.btn-gold{background:var(--gold); color:#2B2004;}
+.btn-gold:hover{background:var(--gold-light);}
+.btn-outline{background:transparent; border-color:var(--border); color:var(--ink);}
+.btn-outline:hover{border-color:var(--primary); color:var(--primary);}
+.btn-danger{background:transparent; color:var(--danger); border-color:#E7C7BA;}
+.btn-danger:hover{background:#FBEDE7;}
+.btn-sm{padding:5px 10px; font-size:12px;}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+
+.card{background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow);}
+.card-pad{padding:20px;}
+
+.grid{display:grid; gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:640px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr;}}
+
+.stat-card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 18px; box-shadow:var(--shadow); position:relative; overflow:hidden;}
+.stat-card .label{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600;}
+.stat-card .value{font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin-top:6px; color:var(--primary-dark);}
+.stat-card .delta{font-size:11.5px; color:var(--muted); margin-top:4px;}
+.stat-card .accent-bar{position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--gold);}
+
+.badge{display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:99px; font-size:11px; font-weight:600; letter-spacing:.02em;}
+.badge-green{background:#E4F1E6; color:var(--success);}
+.badge-red{background:#FBEAE3; color:var(--danger);}
+.badge-gold{background:#FBF1D9; color:#8A6A16;}
+.badge-gray{background:#EEEBE1; color:var(--muted);}
+
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; padding:10px 12px; border-bottom:2px solid var(--border);}
+td{padding:11px 12px; border-bottom:1px solid var(--border); vertical-align:middle;}
+tbody tr:hover{background:#FBFAF6;}
+.table-wrap{overflow-x:auto;}
+
+.toolbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
+.search-input{
+  border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:13px; min-width:220px; background:var(--surface);
+}
+.select, .input, .textarea{
+  border:1px solid var(--border); border-radius:8px; padding:8px 11px; font-size:13.5px; width:100%; background:var(--surface); color:var(--ink);
+}
+.textarea{resize:vertical; min-height:70px;}
+label.field-label{font-size:12px; font-weight:600; color:var(--muted); margin-bottom:5px; display:block;}
+.field{margin-bottom:14px;}
+
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(24,22,17,.45); display:flex; align-items:center; justify-content:center;
+  z-index:50; padding:20px; backdrop-filter:blur(1px);
+}
+.modal{background:var(--surface); border-radius:14px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-header{padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;}
+.modal-title{font-family:'Fraunces',serif; font-size:18px; font-weight:600;}
+.modal-body{padding:20px 22px;}
+.modal-footer{padding:16px 22px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px;}
+.icon-btn{background:none;border:none;font-size:18px;color:var(--muted); line-height:1;}
+.icon-btn:hover{color:var(--ink);}
+
+.empty-state{text-align:center; padding:50px 20px; color:var(--muted);}
+.empty-state .glyph{font-size:34px; margin-bottom:10px;}
+.empty-state .title{font-weight:600; color:var(--ink); margin-bottom:4px;}
+
+.avatar-photo{width:38px;height:38px;border-radius:50%; object-fit:cover; background:var(--border); flex-shrink:0;}
+.avatar-fallback{width:38px;height:38px;border-radius:50%; background:var(--primary); color:#fff; display:flex;align-items:center;justify-content:center; font-size:13px; font-weight:600; flex-shrink:0;}
+
+/* Membership card - signature element */
+.member-card{
+  width:340px; border-radius:16px; padding:0; position:relative; overflow:hidden;
+  background:linear-gradient(155deg, var(--primary-dark) 0%, var(--primary) 60%, var(--primary-light) 100%);
+  color:#fff; box-shadow:0 12px 30px rgba(18,53,48,.35);
+}
+.member-card::before{
+  content:""; position:absolute; inset:0;
+  background-image: radial-gradient(circle at 90% 8%, rgba(201,150,43,.28), transparent 45%);
+}
+.member-card-top{padding:16px 18px 10px; display:flex; justify-content:space-between; align-items:flex-start; position:relative;}
+.member-card-org{font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:#C9D6C9;}
+.member-card-org b{color:#fff;}
+.member-card-seal{
+  width:30px;height:30px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, var(--gold-light), var(--gold) 65%, #7A3607 100%);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.4);
+}
+.member-card-body{display:flex; gap:14px; padding:6px 18px 14px; position:relative;}
+.member-card-photo{width:64px;height:64px;border-radius:10px; object-fit:cover; border:2px solid rgba(255,255,255,.35); background:rgba(255,255,255,.1); flex-shrink:0;}
+.member-card-name{font-family:'Fraunces',serif; font-weight:600; font-size:16px; line-height:1.15;}
+.member-card-role{font-size:11.5px; color:#D9E4D6; margin-top:2px;}
+.member-card-mat{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gold-light); margin-top:6px; letter-spacing:.03em;}
+.member-card-strip{
+  display:flex; align-items:center; justify-content:space-between; padding:10px 18px; background:rgba(0,0,0,.18);
+  border-top:1px dashed rgba(255,255,255,.35); position:relative;
+}
+.member-card-strip .stub-dot{position:absolute; width:14px;height:14px;border-radius:50%; background:var(--paper); top:-7px;}
+.member-card-strip .stub-dot.l{left:-7px;} .member-card-strip .stub-dot.r{right:-7px;}
+.member-card-status{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:#D9E4D6;}
+.member-card img.qr{width:52px;height:52px; border-radius:6px; background:#fff; padding:3px;}
+
+/* Receipt - carnet à souche style */
+.receipt{
+  width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  position:relative; padding:22px 24px;
+}
+.receipt::before, .receipt::after{
+  content:""; position:absolute; width:16px; height:16px; border-radius:50%; background:var(--paper); border:1px solid var(--border);
+  top:50%; transform:translateY(-50%);
+}
+.receipt::before{left:-9px;} .receipt::after{right:-9px;}
+.receipt-head{display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed var(--border); padding-bottom:12px; margin-bottom:12px;}
+.receipt-no{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--gold); font-weight:600;}
+.receipt-row{display:flex; justify-content:space-between; font-size:13.5px; padding:5px 0;}
+.receipt-row .k{color:var(--muted);}
+.receipt-total{display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:12px; border-top:2px dashed var(--border); font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--primary-dark);}
+
+.bar-chart{display:flex; align-items:flex-end; gap:10px; height:160px; padding-top:10px;}
+.bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:6px;}
+.bar-fill{width:100%; border-radius:5px 5px 0 0; background:var(--primary); position:relative; min-height:3px;}
+.bar-fill.gold{background:var(--gold);}
+.bar-label{font-size:10.5px; color:var(--muted); text-align:center;}
+.bar-val{font-size:11px; font-weight:600; color:var(--ink);}
+
+.progress-track{width:100%; height:8px; border-radius:99px; background:var(--border); overflow:hidden;}
+.progress-fill{height:100%; background:var(--success); border-radius:99px;}
+
+.login-shell{min-height:100vh; display:grid; grid-template-columns:1.05fr 1fr;}
+.login-brandpanel{
+  background:linear-gradient(155deg, var(--primary-dark) 0%, var(--primary) 55%, var(--primary-light) 100%);
+  color:#fff; padding:56px 52px; display:flex; flex-direction:column; justify-content:center; gap:20px;
+  position:relative; overflow:hidden;
+}
+.login-brandpanel::before{
+  content:""; position:absolute; inset:0;
+  background-image:radial-gradient(circle at 88% 8%, rgba(201,150,43,.30), transparent 45%), radial-gradient(circle at 8% 94%, rgba(255,255,255,.08), transparent 40%);
+}
+.login-brand-seal{
+  width:68px; height:68px; border-radius:18px;
+  background:radial-gradient(circle at 35% 30%, var(--gold-light), var(--gold) 65%, #7A3607 100%);
+  box-shadow:inset 0 0 0 3px rgba(255,255,255,.35), 0 14px 28px rgba(0,0,0,.28);
+  display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:700; font-size:28px;
+  color:var(--primary-dark); position:relative; z-index:1;
+}
+.login-brand-name{font-family:'Fraunces',serif; font-size:30px; font-weight:600; line-height:1.15; position:relative; z-index:1;}
+.login-brand-sigle{font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:#D9E4D6; margin-top:4px; position:relative; z-index:1;}
+.login-brand-desc{font-size:14px; line-height:1.65; color:#E7EFE6; max-width:420px; position:relative; z-index:1;}
+.login-brand-motto{
+  font-family:'Fraunces',serif; font-style:italic; font-size:15px; line-height:1.5; color:var(--gold-light);
+  max-width:420px; position:relative; z-index:1; border-left:2px solid var(--gold); padding-left:12px;
+}
+.login-brand-values{display:flex; flex-wrap:wrap; gap:8px; position:relative; z-index:1;}
+.value-pill{
+  display:inline-flex; align-items:center; padding:4px 11px; border-radius:99px; font-size:11px; font-weight:600;
+  letter-spacing:.03em; background:rgba(255,255,255,.12); color:#EAF0E8; border:1px solid rgba(255,255,255,.18);
+}
+.login-brand-meta{display:flex; flex-direction:column; gap:11px; margin-top:6px; position:relative; z-index:1;}
+.login-brand-meta-row{display:flex; align-items:center; gap:11px; font-size:13px; color:#EAF0E8;}
+.login-brand-meta-row .ic{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.13); display:flex;align-items:center;justify-content:center; font-size:13px; flex-shrink:0;}
+.login-brand-badge{
+  display:inline-flex; align-items:center; gap:6px; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:#C9D6C9; position:relative; z-index:1; margin-top:auto; padding-top:18px;
+}
+.dashboard-motto{
+  font-family:'Fraunces',serif; font-style:italic; font-size:14.5px; color:var(--primary-dark); margin-top:6px;
+  border-left:2px solid var(--gold); padding-left:11px;
+}
+.dashboard-values{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+.value-pill-light{
+  display:inline-flex; align-items:center; padding:4px 11px; border-radius:99px; font-size:11px; font-weight:600;
+  letter-spacing:.03em; background:var(--surface); border:1px solid var(--border); color:var(--muted);
+}
+
+.login-formpanel{background:var(--paper); display:flex; align-items:center; justify-content:center; padding:32px;}
+.login-card{width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); padding:36px 32px;}
+.login-title{font-family:'Fraunces',serif; font-size:23px; font-weight:600; margin-bottom:2px;}
+.login-sub{font-size:12.5px; color:var(--muted); margin-bottom:26px;}
+.demo-hint{margin-top:18px; font-size:11.5px; color:var(--muted); background:var(--paper); border:1px solid var(--border); border-radius:8px; padding:10px 12px; line-height:1.6;}
+.login-switch{margin-top:16px; text-align:center; font-size:12.5px; color:var(--muted);}
+.link-btn{background:none; border:none; color:var(--primary); font-weight:600; font-size:12.5px; padding:0; text-decoration:underline;}
+.link-btn:hover{color:var(--primary-light);}
+
+@media(max-width:860px){
+  .login-shell{grid-template-columns:1fr; grid-auto-rows:min-content;}
+  .login-brandpanel{padding:36px 28px; gap:14px;}
+  .login-brand-name{font-size:24px;}
+  .login-brand-desc{display:none;}
+  .login-brand-badge{display:none;}
+  .login-formpanel{padding:28px 20px 44px;}
+}
+
+.tabs{display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:18px;}
+.tab{padding:9px 14px; font-size:13px; font-weight:600; color:var(--muted); background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-1px;}
+.tab.active{color:var(--primary-dark); border-bottom-color:var(--gold);}
+
+.check-row{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border);}
+.check-row:last-child{border-bottom:none;}
+
+@media print{
+  .no-print{display:none !important;}
+  body{background:#fff;}
+  .print-only{display:block !important;}
+}
+.print-only{display:none;}
+
+.hint{font-size:11.5px; color:var(--muted); margin-top:4px;}
+.divider{height:1px; background:var(--border); margin:16px 0;}
+.section-title{font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin:0 0 12px;}
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+@media(max-width:560px){.two-col{grid-template-columns:1fr;}}
+.pill-tabs{display:flex; gap:6px; flex-wrap:wrap;}
+.pill{padding:6px 12px; border-radius:99px; font-size:12px; font-weight:600; border:1px solid var(--border); background:var(--surface); color:var(--muted);}
+.pill.active{background:var(--primary); border-color:var(--primary); color:#fff;}
+
+/* ---------- Dashboard modules ---------- */
+.dashboard-hero{margin-bottom:22px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+.dashboard-hero .hello{font-family:'Fraunces',serif; font-size:23px; font-weight:600;}
+.dashboard-hero .date{font-size:12.5px; color:var(--muted); margin-top:3px; text-transform:capitalize;}
+.module-grid{display:grid; grid-template-columns:repeat(2, 1fr); gap:16px;}
+@media(min-width:720px){.module-grid{grid-template-columns:repeat(3, 1fr);}}
+@media(min-width:1100px){.module-grid{grid-template-columns:repeat(4, 1fr);}}
+.module-card{
+  background:var(--surface); border:1px solid var(--border); border-top:4px solid var(--accent, var(--border));
+  border-radius:16px; padding:26px 16px; box-shadow:var(--shadow);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center;
+  font:inherit; color:inherit; width:100%; min-height:150px; cursor:pointer;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.module-card:hover{transform:translateY(-3px); box-shadow:0 12px 28px rgba(36,34,29,.14);}
+.module-card:active{transform:translateY(-1px);}
+.module-icon{font-size:36px; line-height:1;}
+.module-title{font-family:'Fraunces',serif; font-size:15px; font-weight:700;}
+
+/* ---------- Bottom mobile nav ---------- */
+.bottom-nav{
+  display:none; position:fixed; left:0; right:0; bottom:0; z-index:45;
+  background:var(--surface); border-top:1px solid var(--border);
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  overflow-x:auto; -webkit-overflow-scrolling:touch;
+}
+.bottom-nav::-webkit-scrollbar{display:none;}
+.bottom-nav-track{display:flex; gap:2px; min-width:max-content;}
+.bottom-nav-item{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  background:none; border:none; padding:6px 12px; min-width:64px; border-radius:10px;
+  font-size:10.5px; color:var(--muted); font-weight:600;
+}
+.bottom-nav-item .bn-icon{font-size:19px; line-height:1;}
+.bottom-nav-item.active{color:var(--primary);}
+.bottom-nav-item.active .bn-icon{transform:translateY(-1px);}
+
+/* ---------- Settings ---------- */
+.logo-upload{display:flex; align-items:center; gap:14px; margin-bottom:18px;}
+.logo-preview{width:56px;height:56px;border-radius:12px; object-fit:cover; background:var(--paper); border:1px solid var(--border);}
+.logo-preview-fallback{
+  width:56px;height:56px;border-radius:12px;
+  background:radial-gradient(circle at 35% 30%, var(--gold-light), var(--gold) 65%, #7A3607 100%);
+  display:flex;align-items:center;justify-content:center; color:var(--primary-dark); font-family:'Fraunces',serif; font-weight:700; font-size:21px; flex-shrink:0;
+}
+.color-field{display:flex; align-items:center; gap:10px; border:1px solid var(--border); border-radius:8px; padding:6px 10px; background:var(--surface);}
+.color-field input[type=color]{width:34px; height:34px; border:none; padding:0; background:none; border-radius:6px; cursor:pointer;}
+.danger-zone{border:1px solid #E7C7BA !important; background:#FBEDE7 !important;}
+.save-flash{margin-left:10px; font-size:12.5px; color:var(--success); font-weight:600;}
+
+/* ---------- Responsive overhaul ---------- */
+@media(max-width:900px){
+  .sidebar{display:none;}
+  .bottom-nav{display:block;}
+  .main{padding-bottom:70px;}
+  .page-role{display:none;}
+  .topbar{padding:12px 16px;}
+  .content{padding:16px 16px 24px;}
+  .page-title{font-size:17px;}
+  .page-eyebrow{font-size:10px;}
+}
+@media(max-width:640px){
+  .content{padding:14px 12px 20px;}
+  .card-pad{padding:16px;}
+  .grid{gap:12px;}
+  .toolbar{flex-direction:column; align-items:stretch;}
+  .toolbar .search-input{width:100%; min-width:0;}
+  .btn{padding:10px 14px; font-size:13.5px;}
+  .btn-sm{padding:7px 11px; font-size:12px;}
+  input.input, select.select, textarea.textarea, .search-input{font-size:16px; padding:10px 12px;}
+  .modal-overlay{padding:0; align-items:flex-end;}
+  .modal{max-width:100%; width:100%; border-radius:16px 16px 0 0; max-height:92dvh;}
+  .modal-header{padding:16px 18px;}
+  .modal-body{padding:16px 18px;}
+  .modal-footer{padding:14px 18px; flex-wrap:wrap;}
+  table{font-size:12.5px;}
+  th,td{padding:9px 8px;}
+  .module-card{padding:20px 12px; min-height:130px;}
+  .module-icon{font-size:30px;}
+  .dashboard-hero .hello{font-size:19px;}
+  .clock-chip{font-size:11.5px;}
+}
+@media(max-width:360px){
+  .module-grid{grid-template-columns:1fr 1fr; gap:10px;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const {useState, useEffect, useMemo, useRef} = React;
+
+/* ---------------------------- Helpers ---------------------------- */
+const LS = {
+  get(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
+  set(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){ console.error(e); } }
+};
+const uid = (p='id') => p + '_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4);
+const todayISO = () => new Date().toISOString().slice(0,10);
+const fmtDate = (d) => { if(!d) return '—'; const dt = new Date(d); if(isNaN(dt)) return d; return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}); };
+const fmtMoney = (n, devise) => (Number(n)||0).toLocaleString('fr-FR') + ' ' + (devise || 'FCFA');
+
+async function sha256(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+const ROLES = [
+  {id:'admin', label:'Administrateur'},
+  {id:'responsable', label:'Responsable'},
+  {id:'tresorier', label:'Trésorier'},
+  {id:'secretaire', label:'Secrétaire'},
+  {id:'membre', label:'Membre'},
+];
+const roleLabel = (id) => (ROLES.find(r=>r.id===id)||{}).label || id;
+
+const STATUTS_MEMBRE = ['actif','inactif','suspendu'];
+const statutBadge = (s) => s==='actif' ? 'badge-green' : s==='suspendu' ? 'badge-red' : 'badge-gray';
+
+const NAV = [
+  {id:'dashboard', label:'Accueil', icon:'🏠', roles:['admin','responsable','tresorier','secretaire','membre'], desc:"Vue d'ensemble et accès rapide aux modules.", color:'#C2540A'},
+  {id:'membres', label:'Membres', icon:'👥', roles:['admin','responsable','secretaire'], desc:"Gérer la liste, les fiches et les statuts des membres.", color:'#3F7D52'},
+  {id:'utilisateurs', label:'Utilisateurs', icon:'🔐', roles:['admin'], desc:"Comptes, rôles et accès à la plateforme.", color:'#E8A33D'},
+  {id:'cotisations', label:'Cotisations', icon:'💳', roles:['admin','responsable','tresorier'], desc:"Types, montants et périodicité des cotisations.", color:'#1B7F84'},
+  {id:'paiements', label:'Paiements', icon:'💸', roles:['admin','tresorier'], desc:"Enregistrer et suivre les paiements des membres.", color:'#6B4FA0'},
+  {id:'recus', label:'Reçus', icon:'🧾', roles:['admin','tresorier'], desc:"Consulter, générer et imprimer les reçus.", color:'#2F5FA8'},
+  {id:'activites', label:'Activités', icon:'📅', roles:['admin','responsable','secretaire'], desc:"Planifier réunions, événements et rencontres.", color:'#7A3FA0'},
+  {id:'documents', label:'Documents', icon:'📄', roles:['admin','responsable','secretaire'], desc:"Archiver et partager les documents du groupe.", color:'#B3452C'},
+  {id:'rapports', label:'Rapports', icon:'📊', roles:['admin','responsable','tresorier'], desc:"Statistiques, bilans et exports.", color:'#6B7280'},
+  {id:'parametres', label:'Paramètres', icon:'⚙️', roles:['admin'], desc:"Configuration de l'application et du groupe.", color:'#8A6A16'},
+];
+
+/* ---------------------------- Seed ---------------------------- */
+function seedIfEmpty(){
+  if(!localStorage.getItem('gg_seeded')){
+    const settings = {
+      nomAssociation:"L'AG — L'Avenir de Gbegbessou",
+      sigle:"L'AG",
+      description:"Une initiative née de la volonté des fils et filles de Gbegbessou de s'unir pour partager idées, savoir-faire et solidarité, et bâtir ensemble l'avenir de leur village.",
+      motto:"Unis aujourd'hui, engagés pour demain, bâtisseurs de l'avenir de Gbegbessou.",
+      valeurs:"Unité, Respect, Transparence, Responsabilité, Solidarité",
+      devise:'FCFA', logo:'', adresse:'', telephone:''
+    };
+    LS.set('gg_settings', settings);
+
+    const m1 = uid('mem'), m2 = uid('mem'), m3 = uid('mem');
+    const membres = [
+      {id:m1, matricule:'GRP-0001', nom:'Koffi', prenom:'Aya', fonction:'Présidente', departement:'Bureau exécutif', statut:'actif', telephone:'07 00 00 01', email:'aya.koffi@example.com', adresse:'Abidjan', dateAdhesion:todayISO(), photo:''},
+      {id:m2, matricule:'GRP-0002', nom:'Diabaté', prenom:'Ibrahim', fonction:'Trésorier', departement:'Bureau exécutif', statut:'actif', telephone:'07 00 00 02', email:'ibrahim.d@example.com', adresse:'Abidjan', dateAdhesion:todayISO(), photo:''},
+      {id:m3, matricule:'GRP-0003', nom:'N\'Guessan', prenom:'Marie', fonction:'Membre', departement:'Commission sociale', statut:'inactif', telephone:'07 00 00 03', email:'marie.ng@example.com', adresse:'Bouaké', dateAdhesion:todayISO(), photo:''},
+    ];
+    LS.set('gg_membres', membres);
+
+    const users = [
+      {id:uid('usr'), username:'admin', role:'admin', membreId:m1, actif:true, passwordHash:null},
+      {id:uid('usr'), username:'tresorier', role:'tresorier', membreId:m2, actif:true, passwordHash:null},
+    ];
+    LS.set('gg_users_pending_hash', true);
+    LS.set('gg_users', users);
+
+    const types = [
+      {id:uid('cot'), nom:'Cotisation mensuelle', montant:2000, periodicite:'mensuelle'},
+      {id:uid('cot'), nom:'Cotisation annuelle', montant:20000, periodicite:'annuelle'},
+      {id:uid('cot'), nom:'Cotisation exceptionnelle - Événement', montant:5000, periodicite:'exceptionnelle'},
+    ];
+    LS.set('gg_cotisation_types', types);
+
+    LS.set('gg_paiements', []);
+    LS.set('gg_activites', []);
+    LS.set('gg_documents', []);
+    localStorage.setItem('gg_seeded', '1');
+  }
+}
+async function ensureDefaultPasswords(){
+  if(localStorage.getItem('gg_users_pending_hash')){
+    const users = LS.get('gg_users', []);
+    for(const u of users){
+      if(!u.passwordHash){ u.passwordHash = await sha256('cercle123'); }
+    }
+    LS.set('gg_users', users);
+    localStorage.removeItem('gg_users_pending_hash');
+  }
+}
+
+/* ---------------------------- Small UI atoms ---------------------------- */
+function Badge({children, cls}){ return <span className={"badge "+cls}>{children}</span>; }
+
+function Modal({title, onClose, children, footer, width}){
+  return (
+    <div className="modal-overlay no-print" onMouseDown={(e)=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="modal" style={width?{maxWidth:width}:{}}>
+        <div className="modal-header">
+          <div className="modal-title">{title}</div>
+          <button className="icon-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">{children}</div>
+        {footer && <div className="modal-footer">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Field({label, children, hint}){
+  return <div className="field"><label className="field-label">{label}</label>{children}{hint && <div className="hint">{hint}</div>}</div>;
+}
+
+function EmptyState({glyph, title, sub}){
+  return <div className="empty-state"><div className="glyph">{glyph}</div><div className="title">{title}</div><div>{sub}</div></div>;
+}
+
+function Avatar({photo, name}){
+  if(photo) return <img className="avatar-photo" src={photo} alt={name}/>;
+  const initials = (name||'?').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
+  return <div className="avatar-fallback">{initials}</div>;
+}
+
+function fileToBase64(file, cb){
+  const reader = new FileReader();
+  reader.onload = () => cb(reader.result);
+  reader.readAsDataURL(file);
+}
+
+/* ---------------------------- Login ---------------------------- */
+function Login({onLogin, onRegister, settings, membres}){
+  const [mode, setMode] = useState('login');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const [reg, setReg] = useState({prenom:'', nom:'', telephone:'', email:'', regUsername:'', regPassword:'', regPassword2:''});
+  const setR = (k,v) => setReg(f=>({...f,[k]:v}));
+
+  async function submit(e){
+    e.preventDefault();
+    setBusy(true); setError('');
+    const users = LS.get('gg_users', []);
+    const hash = await sha256(password);
+    const u = users.find(x=>x.username.toLowerCase()===username.trim().toLowerCase());
+    setBusy(false);
+    if(!u || !u.actif){ setError('Identifiants invalides ou compte désactivé.'); return; }
+    if(u.passwordHash !== hash){ setError('Identifiants invalides ou compte désactivé.'); return; }
+    onLogin(u);
+  }
+
+  async function submitRegister(e){
+    e.preventDefault();
+    setError('');
+    if(!reg.prenom.trim() || !reg.nom.trim()){ setError('Merci de renseigner votre prénom et votre nom.'); return; }
+    if(!reg.regUsername.trim()){ setError("Merci de choisir un nom d'utilisateur."); return; }
+    if(reg.regPassword.length < 4){ setError('Le mot de passe doit contenir au moins 4 caractères.'); return; }
+    if(reg.regPassword !== reg.regPassword2){ setError('Les mots de passe ne correspondent pas.'); return; }
+    setBusy(true);
+    const users = LS.get('gg_users', []);
+    const taken = users.some(x=>x.username.toLowerCase()===reg.regUsername.trim().toLowerCase());
+    if(taken){ setBusy(false); setError("Ce nom d'utilisateur est déjà pris, merci d'en choisir un autre."); return; }
+    const membreId = uid('mem');
+    const membre = {
+      id:membreId, matricule:nextMatricule(membres), nom:reg.nom.trim(), prenom:reg.prenom.trim(),
+      fonction:'Membre', departement:'', statut:'actif', telephone:reg.telephone.trim(), email:reg.email.trim(),
+      adresse:'', dateAdhesion:todayISO(), photo:''
+    };
+    const passwordHash = await sha256(reg.regPassword);
+    const user = {id:uid('usr'), username:reg.regUsername.trim(), role:'membre', membreId, actif:true, passwordHash};
+    setBusy(false);
+    onRegister(membre, user);
+  }
+
+  const meta = [
+    settings.adresse && {ic:'📍', label:settings.adresse},
+    settings.telephone && {ic:'📞', label:settings.telephone},
+    settings.email && {ic:'✉️', label:settings.email},
+    settings.siteWeb && {ic:'🌐', label:settings.siteWeb},
+  ].filter(Boolean);
+
+  return (
+    <div className="login-shell">
+      <div className="login-brandpanel">
+        <div className="login-brand-seal">
+          {settings.logo
+            ? <img src={settings.logo} alt="Logo" style={{width:'100%',height:'100%',borderRadius:16,objectFit:'cover'}}/>
+            : (settings.nomAssociation||'C').slice(0,1)}
+        </div>
+        <div>
+          <div className="login-brand-name">{settings.nomAssociation || 'Cercle'}</div>
+          {settings.sigle && <div className="login-brand-sigle">{settings.sigle}</div>}
+        </div>
+        {settings.description && <div className="login-brand-desc">{settings.description}</div>}
+        {settings.motto && <div className="login-brand-motto">« {settings.motto} »</div>}
+        {settings.valeurs && (
+          <div className="login-brand-values">
+            {settings.valeurs.split(',').map(v=>v.trim()).filter(Boolean).map((v,i)=>(
+              <span className="value-pill" key={i}>{v}</span>
+            ))}
+          </div>
+        )}
+        {meta.length > 0 && (
+          <div className="login-brand-meta">
+            {meta.map((m,i)=>(
+              <div className="login-brand-meta-row" key={i}><span className="ic">{m.ic}</span>{m.label}</div>
+            ))}
+          </div>
+        )}
+        <div className="login-brand-badge">⬡ Gestion de groupe</div>
+      </div>
+
+      <div className="login-formpanel">
+        {mode==='login' ? (
+          <form className="login-card" onSubmit={submit}>
+            <div className="login-title">Connexion</div>
+            <div className="login-sub">Accédez à votre espace de gestion{settings.nomAssociation ? ' — ' + settings.nomAssociation : ''}</div>
+            <Field label="Nom d'utilisateur">
+              <input className="input" value={username} onChange={e=>setUsername(e.target.value)} autoFocus required/>
+            </Field>
+            <Field label="Mot de passe">
+              <input className="input" type="password" value={password} onChange={e=>setPassword(e.target.value)} required/>
+            </Field>
+            {error && <div style={{color:'var(--danger)', fontSize:12.5, marginBottom:12}}>{error}</div>}
+            <button className="btn btn-primary" style={{width:'100%', justifyContent:'center', padding:'10px'}} disabled={busy}>
+              {busy ? 'Connexion…' : 'Se connecter'}
+            </button>
+            <div className="login-switch">
+              Nouveau membre ? <button type="button" className="link-btn" onClick={()=>{ setMode('register'); setError(''); }}>Créer mon profil</button>
+            </div>
+            <div className="demo-hint">
+              Comptes de démonstration — <b>admin</b> / <b>tresorier</b><br/>
+              Mot de passe : <span className="mono">cercle123</span>
+            </div>
+          </form>
+        ) : (
+          <form className="login-card" onSubmit={submitRegister}>
+            <div className="login-title">Créer mon profil</div>
+            <div className="login-sub">Réservé aux membres — l'administrateur, le trésorier et les gestionnaires disposent déjà d'un accès dédié.</div>
+            <div className="two-col">
+              <Field label="Prénom"><input className="input" value={reg.prenom} onChange={e=>setR('prenom', e.target.value)} autoFocus required/></Field>
+              <Field label="Nom"><input className="input" value={reg.nom} onChange={e=>setR('nom', e.target.value)} required/></Field>
+            </div>
+            <div className="two-col">
+              <Field label="Téléphone"><input className="input" value={reg.telephone} onChange={e=>setR('telephone', e.target.value)}/></Field>
+              <Field label="Email"><input className="input" type="email" value={reg.email} onChange={e=>setR('email', e.target.value)}/></Field>
+            </div>
+            <Field label="Nom d'utilisateur">
+              <input className="input" value={reg.regUsername} onChange={e=>setR('regUsername', e.target.value)} required/>
+            </Field>
+            <div className="two-col">
+              <Field label="Mot de passe"><input className="input" type="password" value={reg.regPassword} onChange={e=>setR('regPassword', e.target.value)} required/></Field>
+              <Field label="Confirmer"><input className="input" type="password" value={reg.regPassword2} onChange={e=>setR('regPassword2', e.target.value)} required/></Field>
+            </div>
+            {error && <div style={{color:'var(--danger)', fontSize:12.5, marginBottom:12}}>{error}</div>}
+            <button className="btn btn-primary" style={{width:'100%', justifyContent:'center', padding:'10px'}} disabled={busy}>
+              {busy ? 'Création…' : 'Créer mon profil et me connecter'}
+            </button>
+            <div className="login-switch">
+              Déjà un compte ? <button type="button" className="link-btn" onClick={()=>{ setMode('login'); setError(''); }}>Se connecter</button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------- Dashboard ---------------------------- */
+function greetingForNow(){
+  const h = new Date().getHours();
+  if(h < 12) return 'Bonjour';
+  if(h < 18) return 'Bon après-midi';
+  return 'Bonsoir';
+}
+
+function Dashboard({settings, currentUser, modules, onNavigate}){
+  const dateStr = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const valeurs = (settings.valeurs||'').split(',').map(v=>v.trim()).filter(Boolean);
+  return (
+    <div>
+      <div className="dashboard-hero">
+        <div>
+          <div className="hello">{greetingForNow()}, {currentUser.username}</div>
+          <div className="date">{dateStr}</div>
+          {settings.motto && <div className="dashboard-motto">« {settings.motto} »</div>}
+          {valeurs.length > 0 && (
+            <div className="dashboard-values">
+              {valeurs.map((v,i)=><span className="value-pill-light" key={i}>{v}</span>)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {modules.length===0 ? (
+        <EmptyState glyph="🏠" title="Aucun module disponible" sub="Votre rôle ne donne accès à aucun module pour le moment."/>
+      ) : (
+        <div className="module-grid">
+          {modules.map(n=>(
+            <button key={n.id} className="module-card" style={{'--accent':n.color}} onClick={()=>onNavigate(n.id)} title={n.desc}>
+              <div className="module-icon">{n.icon}</div>
+              <div className="module-title">{n.label}</div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------- Membres ---------------------------- */
+function emptyMembre(){
+  return {id:'', matricule:'', nom:'', prenom:'', fonction:'', departement:'', statut:'actif', telephone:'', email:'', adresse:'', dateAdhesion:todayISO(), photo:''};
+}
+function nextMatricule(membres){
+  const nums = membres.map(m => parseInt((m.matricule||'').replace(/\D/g,''))||0);
+  const next = (Math.max(0,...nums) + 1).toString().padStart(4,'0');
+  return 'GRP-' + next;
+}
+
+function MembreForm({initial, onSave, onCancel, membres}){
+  const [form, setForm] = useState(initial);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  return (
+    <div>
+      <div style={{display:'flex', gap:16, alignItems:'center', marginBottom:16}}>
+        <Avatar photo={form.photo} name={form.prenom+' '+form.nom}/>
+        <div>
+          <label className="btn btn-outline btn-sm">
+            Choisir une photo
+            <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
+              const f = e.target.files[0]; if(f) fileToBase64(f, (b64)=>set('photo', b64));
+            }}/>
+          </label>
+          {form.photo && <button className="btn btn-outline btn-sm" style={{marginLeft:8}} onClick={()=>set('photo','')}>Retirer</button>}
+        </div>
+      </div>
+      <div className="two-col">
+        <Field label="Prénom"><input className="input" value={form.prenom} onChange={e=>set('prenom',e.target.value)} required/></Field>
+        <Field label="Nom"><input className="input" value={form.nom} onChange={e=>set('nom',e.target.value)} required/></Field>
+      </div>
+      <div className="two-col">
+        <Field label="Matricule" hint="Généré automatiquement si laissé vide">
+          <input className="input mono" value={form.matricule} onChange={e=>set('matricule',e.target.value)} placeholder={nextMatricule(membres)}/>
+        </Field>
+        <Field label="Statut">
+          <select className="select" value={form.statut} onChange={e=>set('statut',e.target.value)}>
+            {STATUTS_MEMBRE.map(s=><option key={s} value={s}>{s[0].toUpperCase()+s.slice(1)}</option>)}
+          </select>
+        </Field>
+      </div>
+      <div className="two-col">
+        <Field label="Fonction"><input className="input" value={form.fonction} onChange={e=>set('fonction',e.target.value)} placeholder="Ex: Membre, Secrétaire…"/></Field>
+        <Field label="Département / Commission"><input className="input" value={form.departement} onChange={e=>set('departement',e.target.value)}/></Field>
+      </div>
+      <div className="two-col">
+        <Field label="Téléphone"><input className="input" value={form.telephone} onChange={e=>set('telephone',e.target.value)}/></Field>
+        <Field label="Email"><input className="input" type="email" value={form.email} onChange={e=>set('email',e.target.value)}/></Field>
+      </div>
+      <Field label="Adresse"><input className="input" value={form.adresse} onChange={e=>set('adresse',e.target.value)}/></Field>
+      <Field label="Date d'adhésion"><input className="input" type="date" value={form.dateAdhesion} onChange={e=>set('dateAdhesion',e.target.value)}/></Field>
+      <div style={{display:'flex', justifyContent:'flex-end', gap:10, marginTop:6}}>
+        <button className="btn btn-outline" onClick={onCancel}>Annuler</button>
+        <button className="btn btn-primary" onClick={()=>{
+          const toSave = {...form};
+          if(!toSave.matricule) toSave.matricule = nextMatricule(membres);
+          if(!toSave.prenom || !toSave.nom) return;
+          onSave(toSave);
+        }}>Enregistrer</button>
+      </div>
+    </div>
+  );
+}
+
+function MemberCard({membre, settings}){
+  const qrData = encodeURIComponent(JSON.stringify({matricule:membre.matricule, nom:membre.nom, prenom:membre.prenom}));
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=4&data=${qrData}`;
+  return (
+    <div className="member-card">
+      <div className="member-card-top">
+        <div className="member-card-org"><b>{settings.nomAssociation || 'Cercle'}</b><br/>Carte de membre</div>
+        <div className="member-card-seal"></div>
+      </div>
+      <div className="member-card-body">
+        {membre.photo ? <img className="member-card-photo" src={membre.photo}/> : <div className="member-card-photo" style={{display:'flex',alignItems:'center',justifyContent:'center', fontFamily:'Fraunces,serif', fontSize:20}}>{(membre.prenom[0]||'')+(membre.nom[0]||'')}</div>}
+        <div style={{flex:1}}>
+          <div className="member-card-name">{membre.prenom} {membre.nom}</div>
+          <div className="member-card-role">{membre.fonction || 'Membre'}{membre.departement ? ' · '+membre.departement : ''}</div>
+          <div className="member-card-mat">{membre.matricule}</div>
+        </div>
+      </div>
+      <div className="member-card-strip">
+        <div className="stub-dot l"></div><div className="stub-dot r"></div>
+        <div>
+          <div className="member-card-status">Statut</div>
+          <div style={{fontWeight:600, fontSize:12.5, textTransform:'capitalize'}}>{membre.statut}</div>
+        </div>
+        <img className="qr" src={qrUrl} alt="QR"/>
+      </div>
+    </div>
+  );
+}
+
+function Membres({membres, setMembres, settings, canEdit}){
+  const [query, setQuery] = useState('');
+  const [statutFilter, setStatutFilter] = useState('tous');
+  const [editing, setEditing] = useState(null); // membre being edited or 'new'
+  const [viewing, setViewing] = useState(null); // fiche
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+  const filtered = membres.filter(m=>{
+    const q = query.toLowerCase();
+    const matchQ = !q || (m.nom+' '+m.prenom+' '+m.matricule+' '+m.fonction).toLowerCase().includes(q);
+    const matchS = statutFilter==='tous' || m.statut===statutFilter;
+    return matchQ && matchS;
+  });
+
+  function save(form){
+    if(form.id){
+      setMembres(membres.map(m=>m.id===form.id?form:m));
+    }else{
+      setMembres([...membres, {...form, id:uid('mem')}]);
+    }
+    setEditing(null);
+  }
+  function remove(id){ setMembres(membres.filter(m=>m.id!==id)); setConfirmDelete(null); if(viewing && viewing.id===id) setViewing(null); }
+
+  return (
+    <div>
+      <div className="toolbar">
+        <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+          <input className="search-input" placeholder="Rechercher un membre…" value={query} onChange={e=>setQuery(e.target.value)}/>
+          <select className="select" style={{width:150}} value={statutFilter} onChange={e=>setStatutFilter(e.target.value)}>
+            <option value="tous">Tous les statuts</option>
+            {STATUTS_MEMBRE.map(s=><option key={s} value={s}>{s[0].toUpperCase()+s.slice(1)}</option>)}
+          </select>
+        </div>
+        {canEdit && <button className="btn btn-primary" onClick={()=>setEditing(emptyMembre())}>+ Ajouter un membre</button>}
+      </div>
+
+      <div className="card">
+        {filtered.length===0 ? <EmptyState glyph="☺" title="Aucun membre trouvé" sub="Ajustez votre recherche ou ajoutez un nouveau membre."/> : (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th></th><th>Nom</th><th>Matricule</th><th>Fonction</th><th>Statut</th><th>Contact</th><th></th></tr></thead>
+              <tbody>
+                {filtered.map(m=>(
+                  <tr key={m.id}>
+                    <td><Avatar photo={m.photo} name={m.prenom+' '+m.nom}/></td>
+                    <td style={{cursor:'pointer', fontWeight:600}} onClick={()=>setViewing(m)}>{m.prenom} {m.nom}</td>
+                    <td className="mono">{m.matricule}</td>
+                    <td>{m.fonction || '—'}</td>
+                    <td><Badge cls={statutBadge(m.statut)}>{m.statut}</Badge></td>
+                    <td style={{fontSize:12.5, color:'var(--muted)'}}>{m.telephone || m.email || '—'}</td>
+                    <td>
+                      <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+                        <button className="btn btn-outline btn-sm" onClick={()=>setViewing(m)}>Fiche</button>
+                        {canEdit && <button className="btn btn-outline btn-sm" onClick={()=>setEditing(m)}>Modifier</button>}
+                        {canEdit && <button className="btn btn-danger btn-sm" onClick={()=>setConfirmDelete(m)}>Suppr.</button>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {editing && (
+        <Modal title={editing.id ? 'Modifier le membre' : 'Ajouter un membre'} onClose={()=>setEditing(null)} width="620px">
+          <MembreForm initial={editing} onSave={save} onCancel={()=>setEditing(null)} membres={membres}/>
+        </Modal>
+      )}
+
+      {viewing && (
+        <Modal title="Fiche du membre" onClose={()=>setViewing(null)} width="620px">
+          <div style={{display:'flex', justifyContent:'center', marginBottom:18}}>
+            <MemberCard membre={viewing} settings={settings}/>
+          </div>
+          <div className="two-col">
+            <Field label="Téléphone"><div>{viewing.telephone || '—'}</div></Field>
+            <Field label="Email"><div>{viewing.email || '—'}</div></Field>
+            <Field label="Adresse"><div>{viewing.adresse || '—'}</div></Field>
+            <Field label="Date d'adhésion"><div>{fmtDate(viewing.dateAdhesion)}</div></Field>
+          </div>
+          <div style={{display:'flex', justifyContent:'flex-end', gap:10}}>
+            <button className="btn btn-outline" onClick={()=>window.print()}>🖨 Imprimer la carte</button>
+            {canEdit && <button className="btn btn-primary" onClick={()=>{setEditing(viewing); setViewing(null);}}>Modifier</button>}
+          </div>
+        </Modal>
+      )}
+
+      {confirmDelete && (
+        <Modal title="Confirmer la suppression" onClose={()=>setConfirmDelete(null)}
+          footer={<>
+            <button className="btn btn-outline" onClick={()=>setConfirmDelete(null)}>Annuler</button>
+            <button className="btn btn-danger" style={{background:'var(--danger)', color:'#fff'}} onClick={()=>remove(confirmDelete.id)}>Supprimer</button>
+          </>}>
+          <p>Voulez-vous vraiment supprimer <b>{confirmDelete.prenom} {confirmDelete.nom}</b> ? Cette action est irréversible.</p>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------- Utilisateurs ---------------------------- */
+function Utilisateurs({users, setUsers, membres, currentUser}){
+  const [editing, setEditing] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+  function emptyUser(){ return {id:'', username:'', role:'membre', membreId:'', actif:true, password:''}; }
+
+  async function save(form){
+    const list = [...users];
+    let hash = null;
+    if(form.password) hash = await sha256(form.password);
+    if(form.id){
+      const idx = list.findIndex(u=>u.id===form.id);
+      list[idx] = {...list[idx], username:form.username, role:form.role, membreId:form.membreId, actif:form.actif, ...(hash?{passwordHash:hash}:{})};
+    }else{
+      list.push({id:uid('usr'), username:form.username, role:form.role, membreId:form.membreId, actif:form.actif, passwordHash: hash || await sha256('cercle123')});
+    }
+    setUsers(list);
+    setEditing(null);
+  }
+  function remove(id){ setUsers(users.filter(u=>u.id!==id)); setConfirmDelete(null); }
+  const membreName = (id) => { const m = membres.find(x=>x.id===id); return m ? m.prenom+' '+m.nom : '—'; };
+
+  return (
+    <div>
+      <div className="toolbar">
+        <div className="page-eyebrow">{users.length} compte(s)</div>
+        <button className="btn btn-primary" onClick={()=>setEditing(emptyUser())}>+ Nouveau compte</button>
+      </div>
+      <div className="card">
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Utilisateur</th><th>Rôle</th><th>Membre lié</th><th>Statut</th><th></th></tr></thead>
+            <tbody>
+              {users.map(u=>(
+                <tr key={u.id}>
+                  <td style={{fontWeight:600}}>{u.username}</td>
+                  <td><Badge cls="badge-gold">{roleLabel(u.role)}</Badge></td>
+                  <td>{membreName(u.membreId)}</td>
+                  <td><Badge cls={u.actif?'badge-green':'badge-gray'}>{u.actif?'Actif':'Désactivé'}</Badge></td>
+                  <td>
+                    <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+                      <button className="btn btn-outline btn-sm" onClick={()=>setEditing({...u, password:''})}>Modifier</button>
+                      {u.username!=='admin' && <button className="btn btn-danger btn-sm" onClick={()=>setConfirmDelete(u)}>Suppr.</button>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {editing && (
+        <Modal title={editing.id?'Modifier le compte':'Nouveau compte'} onClose={()=>setEditing(null)}>
+          <UserForm initial={editing} membres={membres} onCancel={()=>setEditing(null)} onSave={save}/>
+        </Modal>
+      )}
+      {confirmDelete && (
+        <Modal title="Confirmer la suppression" onClose={()=>setConfirmDelete(null)}
+          footer={<>
+            <button className="btn btn-outline" onClick={()=>setConfirmDelete(null)}>Annuler</button>
+            <button className="btn btn-danger" style={{background:'var(--danger)', color:'#fff'}} onClick={()=>remove(confirmDelete.id)}>Supprimer</button>
+          </>}>
+          <p>Supprimer le compte <b>{confirmDelete.username}</b> ?</p>
+        </Modal>
+      )}
+    </div>
+  );
+}
+function UserForm({initial, membres, onCancel, onSave}){
+  const [form, setForm] = useState(initial);
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  return (
+    <div>
+      <Field label="Nom d'utilisateur"><input className="input" value={form.username} onChange={e=>set('username',e.target.value)} required/></Field>
+      <Field label="Rôle">
+        <select className="select" value={form.role} onChange={e=>set('role',e.target.value)}>
+          {ROLES.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Membre associé">
+        <select className="select" value={form.membreId} onChange={e=>set('membreId',e.target.value)}>
+          <option value="">— Aucun —</option>
+          {membres.map(m=><option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>)}
+        </select>
+      </Field>
+      <Field label={form.id ? "Nouveau mot de passe" : "Mot de passe"} hint={form.id ? "Laisser vide pour conserver le mot de passe actuel" : "Par défaut : cercle123 si laissé vide"}>
+        <input className="input" type="password" value={form.password} onChange={e=>set('password',e.target.value)}/>
+      </Field>
+      <Field label="Compte actif">
+        <select className="select" value={form.actif?'1':'0'} onChange={e=>set('actif', e.target.value==='1')}>
+          <option value="1">Actif</option><option value="0">Désactivé</option>
+        </select>
+      </Field>
+      <div style={{display:'flex', justifyContent:'flex-end', gap:10}}>
+        <button className="btn btn-outline" onClick={onCancel}>Annuler</button>
+        <button className="btn btn-primary" onClick={()=>form.username && onSave(form)}>Enregistrer</button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------- Cotisations (types) ---------------------------- */
+function Cotisations({types, setTypes, settings}){
+  const [editing, setEditing] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  function emptyType(){ return {id:'', nom:'', montant:0, periodicite:'mensuelle'}; }
+  function save(form){
+    if(form.id) setTypes(types.map(t=>t.id===form.id?form:t));
+    else setTypes([...types, {...form, id:uid('cot')}]);
+    setEditing(null);
+  }
+  function remove(id){ setTypes(types.filter(t=>t.id!==id)); setConfirmDelete(null); }
+  return (
+    <div>
+      <div className="toolbar">
+        <div className="page-eyebrow">{types.length} type(s) de cotisation</div>
+        <button className="btn btn-primary" onClick={()=>setEditing(emptyType())}>+ Nouveau type</button>
+      </div>
+      <div className="grid grid-3">
+        {types.map(t=>(
+          <div className="card card-pad" key={t.id}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+              <div>
+                <div className="section-title" style={{marginBottom:4}}>{t.nom}</div>
+                <Badge cls="badge-gold">{t.periodicite}</Badge>
+              </div>
+            </div>
+            <div style={{fontFamily:'Fraunces,serif', fontSize:26, fontWeight:600, color:'var(--primary-dark)', marginTop:14}}>{fmtMoney(t.montant, settings.devise)}</div>
+            <div style={{display:'flex', gap:8, marginTop:14}}>
+              <button className="btn btn-outline btn-sm" onClick={()=>setEditing(t)}>Modifier</button>
+              <button className="btn btn-danger btn-sm" onClick={()=>setConfirmDelete(t)}>Supprimer</button>
+            </div>
+          </div>
+        ))}
+        {types.length===0 && <EmptyState glyph="⌘" title="Aucun type de cotisation" sub="Créez un type pour commencer à enregistrer des paiements."/>}
+      </div>
+
+      {editing && (
+        <Modal title={editing.id?'Modifier le type':'Nouveau type de cotisation'} onClose={()=>setEditing(null)}>
+          <Field label="Nom"><input className="input" value={editing.nom} onChange={e=>setEditing({...editing, nom:e.target.value})}/></Field>
+          <Field label={"Montant ("+settings.devise+")"}><input className="input" type="number" value={editing.montant} onChange={e=>setEditing({...editing, montant:Number(e.target.value)})}/></Field>
+          <Field label="Périodicité">
+            <select className="select" value={editing.periodicite} onChange={e=>setEditing({...editing, periodicite:e.target.value})}>
+              <option value="mensuelle">Mensuelle</option>
+              <option value="annuelle">Annuelle</option>
+              <option value="exceptionnelle">Exceptionnelle</option>
+            </select>
+          </Field>
+          <div style={{display:'flex', justifyContent:'flex-end', gap:10}}>
+            <button className="btn btn-outline" onClick={()=>setEditing(null)}>Annuler</button>
+            <button className="btn btn-primary" onClick={()=>editing.nom && save(editing)}>Enregistrer</button>
+          </div>
+        </Modal>
+      )}
+      {confirmDelete && (
+        <Modal title="Confirmer la suppression" onClose={()=>setConfirmDelete(null)}
+          footer={<>
+            <button className="btn btn-outline" onClick={()=>setConfirmDelete(null)}>Annuler</button>
+            <button className="btn btn-danger" style={{background:'var(--danger)', color:'#fff'}} onClick={()=>remove(confirmDelete.id)}>Supprimer</button>
+          </>}>
+          <p>Supprimer le type <b>{confirmDelete.nom}</b> ?</p>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------- Paiements ---------------------------- */
+function nextReceiptNo(paiements){
+  const nums = paiements.map(p=>parseInt((p.recuNo||'').replace(/\D/g,''))||0);
+  return 'REC-' + (Math.max(0,...nums)+1).toString().padStart(5,'0');
+}
+function Paiements({paiements, setPaiements, membres, types, settings, onOpenReceipt}){
+  const [editing, setEditing] = useState(null);
+  const [query, setQuery] = useState('');
+  const [statutFilter, setStatutFilter] = useState('tous');
+
+  function emptyPaiement(){
+    return {id:'', membreId: membres[0] ? membres[0].id : '', typeId: types[0] ? types[0].id : '', montantDu: types[0]?types[0].montant:0, montantPaye:0, date: todayISO(), mode:'espèces', note:''};
+  }
+  function save(form){
+    let list;
+    if(form.id){
+      list = paiements.map(p=>p.id===form.id?form:p);
+    }else{
+      const withRecu = {...form, id:uid('pay'), recuNo: nextReceiptNo(paiements)};
+      list = [...paiements, withRecu];
+    }
+    setPaiements(list);
+    setEditing(null);
+  }
+  function remove(id){ setPaiements(paiements.filter(p=>p.id!==id)); }
+
+  const membreName = (id) => { const m = membres.find(x=>x.id===id); return m ? m.prenom+' '+m.nom : '—'; };
+  const typeName = (id) => { const t = types.find(x=>x.id===id); return t ? t.nom : '—'; };
+
+  const enriched = paiements.map(p=>{
+    const reste = Number(p.montantDu||0) - Number(p.montantPaye||0);
+    const statut = reste<=0 ? 'payé' : (Number(p.montantPaye||0)>0 ? 'partiel' : 'impayé');
+    return {...p, reste, statut};
+  });
+
+  const filtered = enriched.filter(p=>{
+    const q = query.toLowerCase();
+    const matchQ = !q || (membreName(p.membreId)+' '+typeName(p.typeId)).toLowerCase().includes(q);
+    const matchS = statutFilter==='tous' || p.statut===statutFilter;
+    return matchQ && matchS;
+  }).sort((a,b)=> b.date.localeCompare(a.date));
+
+  const statutCls = {payé:'badge-green', partiel:'badge-gold', impayé:'badge-red'};
+
+  return (
+    <div>
+      <div className="toolbar">
+        <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+          <input className="search-input" placeholder="Rechercher…" value={query} onChange={e=>setQuery(e.target.value)}/>
+          <select className="select" style={{width:150}} value={statutFilter} onChange={e=>setStatutFilter(e.target.value)}>
+            <option value="tous">Tous les statuts</option>
+            <option value="payé">Payé</option>
+            <option value="partiel">Partiel</option>
+            <option value="impayé">Impayé</option>
+          </select>
+        </div>
+        <button className="btn btn-primary" onClick={()=>setEditing(emptyPaiement())}>+ Enregistrer un paiement</button>
+      </div>
+
+      <div className="card">
+        {filtered.length===0 ? <EmptyState glyph="⇄" title="Aucun paiement" sub="Enregistrez un paiement pour un membre."/> : (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Membre</th><th>Cotisation</th><th>Date</th><th>Dû</th><th>Payé</th><th>Reste</th><th>Statut</th><th></th></tr></thead>
+              <tbody>
+                {filtered.map(p=>(
+                  <tr key={p.id}>
+                    <td style={{fontWeight:600}}>{membreName(p.membreId)}</td>
+                    <td>{typeName(p.typeId)}</td>
+                    <td className="mono" style={{fontSize:12.5}}>{fmtDate(p.date)}</td>
+                    <td className="mono">{fmtMoney(p.montantDu, settings.devise)}</td>
+                    <td className="mono">{fmtMoney(p.montantPaye, settings.devise)}</td>
+                    <td className="mono">{fmtMoney(p.reste, settings.devise)}</td>
+                    <td><Badge cls={statutCls[p.statut]}>{p.statut}</Badge></td>
+                    <td>
+                      <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+                        <button className="btn btn-outline btn-sm" onClick={()=>onOpenReceipt(p)}>Reçu</button>
+                        <button className="btn btn-outline btn-sm" onClick={()=>setEditing(p)}>Modifier</button>
+                        <button className="btn btn-danger btn-sm" onClick={()=>remove(p.id)}>Suppr.</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {editing && (
+        <Modal title={editing.id?'Modifier le paiement':'Enregistrer un paiement'} onClose={()=>setEditing(null)} width="520px">
+          <PaiementForm initial={editing} membres={membres} types={types} onCancel={()=>setEditing(null)} onSave={save}/>
+        </Modal>
+      )}
+    </div>
+  );
+}
+function PaiementForm({initial, membres, types, onCancel, onSave}){
+  const [form, setForm] = useState(initial);
+  const set = (k,v)=>setForm(f=>({...f,[k]:v}));
+  useEffect(()=>{
+    if(!initial.id){
+      const t = types.find(x=>x.id===form.typeId);
+      if(t) set('montantDu', t.montant);
+    }
+  }, [form.typeId]);
+  return (
+    <div>
+      <Field label="Membre">
+        <select className="select" value={form.membreId} onChange={e=>set('membreId', e.target.value)}>
+          {membres.map(m=><option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>)}
+        </select>
+      </Field>
+      <Field label="Type de cotisation">
+        <select className="select" value={form.typeId} onChange={e=>set('typeId', e.target.value)}>
+          {types.map(t=><option key={t.id} value={t.id}>{t.nom}</option>)}
+        </select>
+      </Field>
+      <div className="two-col">
+        <Field label="Montant dû"><input className="input" type="number" value={form.montantDu} onChange={e=>set('montantDu', Number(e.target.value))}/></Field>
+        <Field label="Montant payé"><input className="input" type="number" value={form.montantPaye} onChange={e=>set('montantPaye', Number(e.target.value))}/></Field>
+      </div>
+      <div className="two-col">
+        <Field label="Date"><input className="input" type="date" value={form.date} onChange={e=>set('date', e.target.value)}/></Field>
+        <Field label="Mode de paiement">
+          <select className="select" value={form.mode} onChange={e=>set('mode', e.target.value)}>
+            <option>espèces</option><option>mobile money</option><option>virement</option><option>chèque</option>
+          </select>
+        </Field>
+      </div>
+      <Field label="Note"><textarea className="textarea" value={form.note} onChange={e=>set('note', e.target.value)}/></Field>
+      <div style={{display:'flex', justifyContent:'flex-end', gap:10}}>
+        <button className="btn btn-outline" onClick={onCancel}>Annuler</button>
+        <button className="btn btn-primary" onClick={()=>form.membreId && form.typeId && onSave(form)}>Enregistrer</button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------- Reçus ---------------------------- */
+function ReceiptView({paiement, membres, types, settings}){
+  const m = membres.find(x=>x.id===paiement.membreId) || {};
+  const t = types.find(x=>x.id===paiement.typeId) || {};
+  return (
+    <div>
+      <div className="receipt">
+        <div className="receipt-head">
+          <div>
+            <div style={{fontFamily:'Fraunces,serif', fontWeight:600, fontSize:16}}>{settings.nomAssociation}</div>
+            <div style={{fontSize:11.5, color:'var(--muted)'}}>Reçu de cotisation</div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div className="receipt-no">{paiement.recuNo}</div>
+            <div style={{fontSize:11.5, color:'var(--muted)'}}>{fmtDate(paiement.date)}</div>
+          </div>
+        </div>
+        <div className="receipt-row"><span className="k">Membre</span><span>{m.prenom} {m.nom} ({m.matricule})</span></div>
+        <div className="receipt-row"><span className="k">Cotisation</span><span>{t.nom}</span></div>
+        <div className="receipt-row"><span className="k">Mode de paiement</span><span style={{textTransform:'capitalize'}}>{paiement.mode}</span></div>
+        <div className="receipt-row"><span className="k">Montant dû</span><span>{fmtMoney(paiement.montantDu, settings.devise)}</span></div>
+        <div className="receipt-row"><span className="k">Reste à payer</span><span>{fmtMoney(Math.max(0,paiement.montantDu-paiement.montantPaye), settings.devise)}</span></div>
+        <div className="receipt-total"><span>Montant payé</span><span>{fmtMoney(paiement.montantPaye, settings.devise)}</span></div>
+      </div>
+      <div style={{textAlign:'right', marginTop:14}}>
+        <button className="btn btn-gold no-print" onClick={()=>window.print()}>🖨 Imprimer le reçu</button>
+      </div>
+    </div>
+  );
+}
+function Recus({paiements, membres, types, settings}){
+  const [selected, setSelected] = useState(null);
+  const [query, setQuery] = useState('');
+  const membreName = (id) => { const m = membres.find(x=>x.id===id); return m ? m.prenom+' '+m.nom : '—'; };
+  const filtered = paiements.filter(p=>{
+    const q = query.toLowerCase();
+    return !q || (p.recuNo+' '+membreName(p.membreId)).toLowerCase().includes(q);
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+  return (
+    <div>
+      <div className="toolbar">
+        <input className="search-input" placeholder="Rechercher un reçu…" value={query} onChange={e=>setQuery(e.target.value)}/>
+      </div>
+      <div className="card">
+        {filtered.length===0 ? <EmptyState glyph="▤" title="Aucun reçu" sub="Les reçus apparaissent après l'enregistrement d'un paiement."/> : (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>N° Reçu</th><th>Membre</th><th>Date</th><th>Montant payé</th><th></th></tr></thead>
+              <tbody>
+                {filtered.map(p=>(
+                  <tr key={p.id}>
+                    <td className="mono">{p.recuNo}</td>
+                    <td style={{fontWeight:600}}>{membreName(p.membreId)}</td>
+                    <td>{fmtDate(p.date)}</td>
+                    <td className="mono">{fmtMoney(p.montantPaye, settings.devise)}</td>
+                    <td><button className="btn btn-outline btn-sm" onClick={()=>setSelected(p)}>Voir le reçu</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      {selected && (
+        <Modal title="Reçu de paiement" onClose={()=>setSelected(null)} width="460px">
+          <ReceiptView paiement={selected} membres={membres} types={types} settings={settings}/>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------- Activités ---------------------------- */
+function Activites({activites, setActivites, membres}){
+  const [editing, setEditing] = useState(null);
+  const [presenceFor, setPresenceFor] = useState(null);
+  function emptyAct(){ return {id:'', titre:'', type:'Réunion', date:todayISO(), lieu:'', description:'', compteRendu:'', presences:{}}; }
+  function save(form){
+    if(form.id) setActivites(activites.map(a=>a.id===form.id?form:a));
+    else setActivites([...activites, {...form, id:uid('act')}]);
+    setEditing(null);
+  }
+  function remove(id){ setActivites(activites.filter(a=>a.id!==id)); }
+  function togglePresence(act, membreId){
+    const presences = {...(act.presences||{})};
+    presences[membreId] = !presences[membreId];
+    const updated = {...act, presences};
+    setActivites(activites.map(a=>a.id===act.id?updated:a));
+    setPresenceFor(updated);
+  }
+  const sorted = [...activites].sort((a,b)=>b.date.localeCompare(a.date));
+  return (
+    <div>
+      <div className="toolbar">
+        <div className="page-eyebrow">{activites.length} activité(s)</div>
+        <button className="btn btn-primary" onClick={()=>setEditing(emptyAct())}>+ Nouvelle activité</button>
+      </div>
+      <div className="card">
+        {sorted.length===0 ? <EmptyState glyph="☰" title="Aucune activité" sub="Planifiez une réunion ou un événement."/> : (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Titre</th><th>Type</th><th>Date</th><th>Lieu</th><th>Présences</th><th></th></tr></thead>
+              <tbody>
+                {sorted.map(a=>{
+                  const presentCount = Object.values(a.presences||{}).filter(Boolean).length;
+                  return (
+                    <tr key={a.id}>
+                      <td style={{fontWeight:600}}>{a.titre}</td>
+                      <td><Badge cls="badge-gold">{a.type}</Badge></td>
+                      <td>{fmtDate(a.date)}</td>
+                      <td>{a.lieu || '—'}</td>
+                      <td>{presentCount} / {membres.length}</td>
+                      <td>
+                        <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+                          <button className="btn btn-outline btn-sm" onClick={()=>setPresenceFor(a)}>Présences</button>
+                          <button className="btn btn-outline btn-sm" onClick={()=>setEditing(a)}>Modifier</button>
+                          <button className="btn btn-danger btn-sm" onClick={()=>remove(a.id)}>Suppr.</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {editing && (
+        <Modal title={editing.id?"Modifier l'activité":"Nouvelle activité"} onClose={()=>setEditing(null)} width="560px">
+          <div className="two-col">
+            <Field label="Titre"><input className="input" value={editing.titre} onChange={e=>setEditing({...editing, titre:e.target.value})}/></Field>
+            <Field label="Type">
+              <select className="select" value={editing.type} onChange={e=>setEditing({...editing, type:e.target.value})}>
+                <option>Réunion</option><option>Événement</option><option>Assemblée générale</option><option>Formation</option><option>Projet communautaire</option><option>Initiative jeunesse</option><option>Entraide / Solidarité</option>
+              </select>
+            </Field>
+          </div>
+          <div className="two-col">
+            <Field label="Date"><input className="input" type="date" value={editing.date} onChange={e=>setEditing({...editing, date:e.target.value})}/></Field>
+            <Field label="Lieu"><input className="input" value={editing.lieu} onChange={e=>setEditing({...editing, lieu:e.target.value})}/></Field>
+          </div>
+          <Field label="Ordre du jour / Description"><textarea className="textarea" value={editing.description} onChange={e=>setEditing({...editing, description:e.target.value})}/></Field>
+          <Field label="Compte rendu"><textarea className="textarea" value={editing.compteRendu} onChange={e=>setEditing({...editing, compteRendu:e.target.value})}/></Field>
+          <div style={{display:'flex', justifyContent:'flex-end', gap:10}}>
+            <button className="btn btn-outline" onClick={()=>setEditing(null)}>Annuler</button>
+            <button className="btn btn-primary" onClick={()=>editing.titre && save(editing)}>Enregistrer</button>
+          </div>
+        </Modal>
+      )}
+
+      {presenceFor && (
+        <Modal title={"Présences — "+presenceFor.titre} onClose={()=>setPresenceFor(null)}>
+          {membres.length===0 ? <EmptyState glyph="☺" title="Aucun membre" sub=""/> : membres.map(m=>(
+            <label className="check-row" key={m.id} style={{cursor:'pointer'}}>
+              <input type="checkbox" checked={!!(presenceFor.presences||{})[m.id]} onChange={()=>togglePresence(presenceFor, m.id)}/>
+              <Avatar photo={m.photo} name={m.prenom+' '+m.nom}/>
+              <span>{m.prenom} {m.nom}</span>
+            </label>
+          ))}
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------- Documents ---------------------------- */
+function Documents({documents, setDocuments, membres}){
+  const [editing, setEditing] = useState(null);
+  function emptyDoc(){ return {id:'', titre:'', type:'Statuts', date:todayISO(), membreId:'', fichier:'', fichierNom:'', note:''}; }
+  function save(form){
+    if(form.id) setDocuments(documents.map(d=>d.id===form.id?form:d));
+    else setDocuments([...documents, {...form, id:uid('doc')}]);
+    setEditing(null);
+  }
+  function remove(id){ setDocuments(documents.filter(d=>d.id!==id)); }
+  const membreName = (id) => { const m = membres.find(x=>x.id===id); return m ? m.prenom+' '+m.nom : '—'; };
+  const sorted = [...documents].sort((a,b)=>b.date.localeCompare(a.date));
+  return (
+    <div>
+      <div className="toolbar">
+        <div className="page-eyebrow">{documents.length} document(s)</div>
+        <button className="btn btn-primary" onClick={()=>setEditing(emptyDoc())}>+ Ajouter un document</button>
+      </div>
+      <div className="card">
+        {sorted.length===0 ? <EmptyState glyph="▭" title="Aucun document" sub="Statuts, procès-verbaux, attestations…"/> : (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Titre</th><th>Type</th><th>Date</th><th>Membre lié</th><th></th></tr></thead>
+              <tbody>
+                {sorted.map(d=>(
+                  <tr key={d.id}>
+                    <td style={{fontWeight:600}}>{d.titre}</td>
+                    <td><Badge cls="badge-gray">{d.type}</Badge></td>
+                    <td>{fmtDate(d.date)}</td>
+                    <td>{membreName(d.membreId)}</td>
+                    <td>
+                      <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+                        {d.fichier && <a className="btn btn-outline btn-sm" href={d.fichier} download={d.fichierNom||'document'}>Télécharger</a>}
+                        <button className="btn btn-outline btn-sm" onClick={()=>setEditing(d)}>Modifier</button>
+                        <button className="btn btn-danger btn-sm" onClick={()=>remove(d.id)}>Suppr.</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      {editing && (
+        <Modal title={editing.id?'Modifier le document':'Ajouter un document'} onClose={()=>setEditing(null)}>
+          <Field label="Titre"><input className="input" value={editing.titre} onChange={e=>setEditing({...editing, titre:e.target.value})}/></Field>
+          <div className="two-col">
+            <Field label="Type">
+              <select className="select" value={editing.type} onChange={e=>setEditing({...editing, type:e.target.value})}>
+                <option>Statuts</option><option>Procès-verbal</option><option>Attestation</option><option>Document membre</option><option>Autre</option>
+              </select>
+            </Field>
+            <Field label="Date"><input className="input" type="date" value={editing.date} onChange={e=>setEditing({...editing, date:e.target.value})}/></Field>
+          </div>
+          <Field label="Membre lié (optionnel)">
+            <select className="select" value={editing.membreId} onChange={e=>setEditing({...editing, membreId:e.target.value})}>
+              <option value="">— Aucun —</option>
+              {membres.map(m=><option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>)}
+            </select>
+          </Field>
+          <Field label="Fichier (PDF ou image, petite taille recommandée)">
+            <input type="file" onChange={e=>{
+              const f = e.target.files[0];
+              if(f) fileToBase64(f, (b64)=>setEditing({...editing, fichier:b64, fichierNom:f.name}));
+            }}/>
+            {editing.fichierNom && <div className="hint">Fichier : {editing.fichierNom}</div>}
+          </Field>
+          <Field label="Note"><textarea className="textarea" value={editing.note} onChange={e=>setEditing({...editing, note:e.target.value})}/></Field>
+          <div style={{display:'flex', justifyContent:'flex-end', gap:10}}>
+            <button className="btn btn-outline" onClick={()=>setEditing(null)}>Annuler</button>
+            <button className="btn btn-primary" onClick={()=>editing.titre && save(editing)}>Enregistrer</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------- Rapports ---------------------------- */
+function toCSV(rows, headers){
+  const esc = (v) => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const lines = [headers.map(esc).join(';')];
+  rows.forEach(r=> lines.push(headers.map(h=>esc(r[h])).join(';')));
+  return lines.join('\n');
+}
+function downloadFile(content, filename, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+function Rapports({membres, paiements, types, settings}){
+  const [tab, setTab] = useState('membres');
+  const membreName = (id) => { const m = membres.find(x=>x.id===id); return m ? m.prenom+' '+m.nom : '—'; };
+  const typeName = (id) => { const t = types.find(x=>x.id===id); return t ? t.nom : '—'; };
+
+  const enrichedPaiements = paiements.map(p=>({...p, reste: Number(p.montantDu||0)-Number(p.montantPaye||0)}));
+  const impayes = enrichedPaiements.filter(p=>p.reste>0);
+  const totalEncaisse = paiements.reduce((s,p)=>s+Number(p.montantPaye||0),0);
+  const totalDu = paiements.reduce((s,p)=>s+Number(p.montantDu||0),0);
+
+  function exportMembres(){
+    const rows = membres.map(m=>({Matricule:m.matricule, Prenom:m.prenom, Nom:m.nom, Fonction:m.fonction, Departement:m.departement, Statut:m.statut, Telephone:m.telephone, Email:m.email, DateAdhesion:m.dateAdhesion}));
+    downloadFile(toCSV(rows, Object.keys(rows[0]||{Matricule:''})), 'rapport_membres.csv', 'text/csv;charset=utf-8');
+  }
+  function exportCotisations(){
+    const rows = paiements.map(p=>({Recu:p.recuNo, Membre:membreName(p.membreId), Cotisation:typeName(p.typeId), Date:p.date, Du:p.montantDu, Paye:p.montantPaye, Reste:Number(p.montantDu)-Number(p.montantPaye)}));
+    downloadFile(toCSV(rows, Object.keys(rows[0]||{Recu:''})), 'rapport_cotisations.csv', 'text/csv;charset=utf-8');
+  }
+  function exportImpayes(){
+    const rows = impayes.map(p=>({Membre:membreName(p.membreId), Cotisation:typeName(p.typeId), Date:p.date, Reste:p.reste}));
+    downloadFile(toCSV(rows, Object.keys(rows[0]||{Membre:''})), 'rapport_impayes.csv', 'text/csv;charset=utf-8');
+  }
+
+  return (
+    <div>
+      <div className="tabs no-print">
+        <button className={"tab "+(tab==='membres'?'active':'')} onClick={()=>setTab('membres')}>Membres</button>
+        <button className={"tab "+(tab==='cotisations'?'active':'')} onClick={()=>setTab('cotisations')}>Cotisations</button>
+        <button className={"tab "+(tab==='impayes'?'active':'')} onClick={()=>setTab('impayes')}>Impayés</button>
+        <button className={"tab "+(tab==='financier'?'active':'')} onClick={()=>setTab('financier')}>Financier</button>
+      </div>
+
+      {tab==='membres' && (
+        <div className="card card-pad">
+          <div className="toolbar"><div className="section-title" style={{margin:0}}>Rapport des membres ({membres.length})</div>
+            <div style={{display:'flex', gap:8}}>
+              <button className="btn btn-outline btn-sm no-print" onClick={exportMembres}>⇩ Export CSV / Excel</button>
+              <button className="btn btn-outline btn-sm no-print" onClick={()=>window.print()}>🖨 Export PDF</button>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table><thead><tr><th>Matricule</th><th>Nom</th><th>Fonction</th><th>Statut</th><th>Adhésion</th></tr></thead>
+              <tbody>{membres.map(m=>(<tr key={m.id}><td className="mono">{m.matricule}</td><td>{m.prenom} {m.nom}</td><td>{m.fonction}</td><td><Badge cls={statutBadge(m.statut)}>{m.statut}</Badge></td><td>{fmtDate(m.dateAdhesion)}</td></tr>))}</tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {tab==='cotisations' && (
+        <div className="card card-pad">
+          <div className="toolbar"><div className="section-title" style={{margin:0}}>Rapport des cotisations</div>
+            <div style={{display:'flex', gap:8}}>
+              <button className="btn btn-outline btn-sm no-print" onClick={exportCotisations}>⇩ Export CSV / Excel</button>
+              <button className="btn btn-outline btn-sm no-print" onClick={()=>window.print()}>🖨 Export PDF</button>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table><thead><tr><th>Reçu</th><th>Membre</th><th>Cotisation</th><th>Date</th><th>Payé</th><th>Reste</th></tr></thead>
+              <tbody>{enrichedPaiements.map(p=>(<tr key={p.id}><td className="mono">{p.recuNo}</td><td>{membreName(p.membreId)}</td><td>{typeName(p.typeId)}</td><td>{fmtDate(p.date)}</td><td className="mono">{fmtMoney(p.montantPaye, settings.devise)}</td><td className="mono">{fmtMoney(p.reste, settings.devise)}</td></tr>))}</tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {tab==='impayes' && (
+        <div className="card card-pad">
+          <div className="toolbar"><div className="section-title" style={{margin:0}}>Impayés ({impayes.length})</div>
+            <div style={{display:'flex', gap:8}}>
+              <button className="btn btn-outline btn-sm no-print" onClick={exportImpayes}>⇩ Export CSV / Excel</button>
+              <button className="btn btn-outline btn-sm no-print" onClick={()=>window.print()}>🖨 Export PDF</button>
+            </div>
+          </div>
+          {impayes.length===0 ? <EmptyState glyph="✓" title="Aucun impayé" sub="Tous les paiements enregistrés sont soldés."/> : (
+            <div className="table-wrap">
+              <table><thead><tr><th>Membre</th><th>Cotisation</th><th>Date</th><th>Reste dû</th></tr></thead>
+                <tbody>{impayes.map(p=>(<tr key={p.id}><td>{membreName(p.membreId)}</td><td>{typeName(p.typeId)}</td><td>{fmtDate(p.date)}</td><td className="mono" style={{color:'var(--danger)', fontWeight:600}}>{fmtMoney(p.reste, settings.devise)}</td></tr>))}</tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==='financier' && (
+        <div className="card card-pad">
+          <div className="toolbar"><div className="section-title" style={{margin:0}}>Rapport financier</div>
+            <button className="btn btn-outline btn-sm no-print" onClick={()=>window.print()}>🖨 Export PDF</button>
+          </div>
+          <div className="grid grid-3">
+            <div className="stat-card"><div className="label">Total attendu</div><div className="value">{fmtMoney(totalDu, settings.devise)}</div></div>
+            <div className="stat-card"><div className="label">Total encaissé</div><div className="value">{fmtMoney(totalEncaisse, settings.devise)}</div></div>
+            <div className="stat-card"><div className="label">Reste à recouvrer</div><div className="value">{fmtMoney(Math.max(0,totalDu-totalEncaisse), settings.devise)}</div></div>
+          </div>
+          <div style={{marginTop:16}}>
+            <div className="hint" style={{marginBottom:6}}>Taux de recouvrement</div>
+            <div className="progress-track"><div className="progress-fill" style={{width:(totalDu? Math.min(100,(totalEncaisse/totalDu)*100):0)+'%'}}></div></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------- Paramètres ---------------------------- */
+function Parametres({settings, setSettings}){
+  const [tab, setTab] = useState('general');
+  const [form, setForm] = useState(settings);
+  const [flash, setFlash] = useState(false);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  function save(next){
+    const toSave = next || form;
+    setSettings(toSave);
+    setFlash(true);
+    setTimeout(()=>setFlash(false), 1800);
+  }
+
+  function exportBackup(){
+    const backup = {
+      settings: LS.get('gg_settings', {}),
+      membres: LS.get('gg_membres', []),
+      users: LS.get('gg_users', []),
+      cotisation_types: LS.get('gg_cotisation_types', []),
+      paiements: LS.get('gg_paiements', []),
+      activites: LS.get('gg_activites', []),
+      documents: LS.get('gg_documents', []),
+    };
+    downloadFile(JSON.stringify(backup, null, 2), 'sauvegarde_cercle.json', 'application/json');
+  }
+  function importBackup(e){
+    const f = e.target.files[0]; if(!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const data = JSON.parse(reader.result);
+        if(data.settings) LS.set('gg_settings', data.settings);
+        if(data.membres) LS.set('gg_membres', data.membres);
+        if(data.users) LS.set('gg_users', data.users);
+        if(data.cotisation_types) LS.set('gg_cotisation_types', data.cotisation_types);
+        if(data.paiements) LS.set('gg_paiements', data.paiements);
+        if(data.activites) LS.set('gg_activites', data.activites);
+        if(data.documents) LS.set('gg_documents', data.documents);
+        alert('Sauvegarde restaurée. La page va se recharger.');
+        window.location.reload();
+      }catch(err){ alert('Fichier invalide.'); }
+    };
+    reader.readAsText(f);
+  }
+  function resetAllData(){
+    if(!confirm("Cette action supprime définitivement toutes les données locales (membres, utilisateurs, paiements, activités, documents, paramètres) et recharge l'application. Continuer ?")) return;
+    ['gg_settings','gg_membres','gg_users','gg_cotisation_types','gg_paiements','gg_activites','gg_documents','gg_session','gg_seeded','gg_users_pending_hash'].forEach(k=>localStorage.removeItem(k));
+    window.location.reload();
+  }
+
+  return (
+    <div>
+      <div className="tabs no-print">
+        <button className={"tab "+(tab==='general'?'active':'')} onClick={()=>setTab('general')}>Général</button>
+        <button className={"tab "+(tab==='apparence'?'active':'')} onClick={()=>setTab('apparence')}>Apparence</button>
+        <button className={"tab "+(tab==='donnees'?'active':'')} onClick={()=>setTab('donnees')}>Données</button>
+      </div>
+
+      {tab==='general' && (
+        <div className="card card-pad" style={{maxWidth:640}}>
+          <div className="section-title">Informations du groupe</div>
+          <div className="logo-upload">
+            {form.logo
+              ? <img className="logo-preview" src={form.logo} alt="Logo"/>
+              : <div className="logo-preview-fallback">{(form.nomAssociation||'C').slice(0,1)}</div>}
+            <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+              <label className="btn btn-outline btn-sm">
+                Changer le logo
+                <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{ const f=e.target.files[0]; if(f) fileToBase64(f, b64=>set('logo', b64)); }}/>
+              </label>
+              {form.logo && <button className="btn btn-outline btn-sm" onClick={()=>set('logo','')}>Retirer</button>}
+            </div>
+          </div>
+          <div className="two-col">
+            <Field label="Nom du groupe / association"><input className="input" value={form.nomAssociation||''} onChange={e=>set('nomAssociation', e.target.value)}/></Field>
+            <Field label="Sigle"><input className="input" value={form.sigle||''} onChange={e=>set('sigle', e.target.value)}/></Field>
+          </div>
+          <Field label="Objet / description">
+            <textarea className="textarea" value={form.description||''} onChange={e=>set('description', e.target.value)} placeholder="Ex. Association d'entraide et de solidarité entre membres"/>
+          </Field>
+          <Field label="Devise / phrase d'engagement" hint="Affichée en exergue sur l'écran de connexion et le tableau de bord">
+            <input className="input" value={form.motto||''} onChange={e=>set('motto', e.target.value)} placeholder="Ex. Unis aujourd'hui, engagés pour demain, bâtisseurs de l'avenir."/>
+          </Field>
+          <Field label="Valeurs" hint="Séparées par des virgules">
+            <input className="input" value={form.valeurs||''} onChange={e=>set('valeurs', e.target.value)} placeholder="Ex. Unité, Respect, Transparence, Responsabilité, Solidarité"/>
+          </Field>
+          <div className="two-col">
+            <Field label="Monnaie"><input className="input" value={form.devise||''} onChange={e=>set('devise', e.target.value)}/></Field>
+            <Field label="Téléphone"><input className="input" value={form.telephone||''} onChange={e=>set('telephone', e.target.value)}/></Field>
+          </div>
+          <div className="two-col">
+            <Field label="Email de contact"><input className="input" type="email" value={form.email||''} onChange={e=>set('email', e.target.value)}/></Field>
+            <Field label="Site web"><input className="input" value={form.siteWeb||''} onChange={e=>set('siteWeb', e.target.value)}/></Field>
+          </div>
+          <Field label="Adresse"><input className="input" value={form.adresse||''} onChange={e=>set('adresse', e.target.value)}/></Field>
+          <button className="btn btn-primary" onClick={()=>save()}>Enregistrer les paramètres</button>
+          {flash && <span className="save-flash">✓ Enregistré</span>}
+        </div>
+      )}
+
+      {tab==='apparence' && (
+        <div className="card card-pad" style={{maxWidth:480}}>
+          <div className="section-title">Couleurs du groupe</div>
+          <p style={{fontSize:13, color:'var(--muted)', marginTop:0}}>Personnalisez les couleurs principales utilisées dans l'application (boutons, accents, mise en avant).</p>
+          <div className="two-col">
+            <Field label="Couleur principale">
+              <div className="color-field">
+                <input type="color" value={form.couleurPrimaire||'#C2540A'} onChange={e=>set('couleurPrimaire', e.target.value)}/>
+                <span className="mono" style={{fontSize:12, color:'var(--muted)'}}>{(form.couleurPrimaire||'#C2540A').toUpperCase()}</span>
+              </div>
+            </Field>
+            <Field label="Couleur d'accent">
+              <div className="color-field">
+                <input type="color" value={form.couleurAccent||'#E8A33D'} onChange={e=>set('couleurAccent', e.target.value)}/>
+                <span className="mono" style={{fontSize:12, color:'var(--muted)'}}>{(form.couleurAccent||'#E8A33D').toUpperCase()}</span>
+              </div>
+            </Field>
+          </div>
+          <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+            <button className="btn btn-primary" onClick={()=>save()}>Appliquer</button>
+            <button className="btn btn-outline" onClick={()=>{ const next={...form, couleurPrimaire:'#C2540A', couleurAccent:'#E8A33D'}; setForm(next); save(next); }}>Réinitialiser les couleurs</button>
+          </div>
+          {flash && <span className="save-flash">✓ Enregistré</span>}
+        </div>
+      )}
+
+      {tab==='donnees' && (
+        <div className="grid grid-2">
+          <div className="card card-pad">
+            <div className="section-title">Sauvegarde des données</div>
+            <p style={{fontSize:13, color:'var(--muted)', marginTop:0}}>Les données sont stockées localement dans ce navigateur. Exportez régulièrement une sauvegarde pour éviter toute perte.</p>
+            <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+              <button className="btn btn-outline" onClick={exportBackup}>⇩ Exporter une sauvegarde</button>
+              <label className="btn btn-outline">
+                ⇧ Importer une sauvegarde
+                <input type="file" accept="application/json" style={{display:'none'}} onChange={importBackup}/>
+              </label>
+            </div>
+          </div>
+          <div className="card card-pad danger-zone">
+            <div className="section-title" style={{color:'var(--danger)'}}>Zone sensible</div>
+            <p style={{fontSize:13, color:'var(--muted)', marginTop:0}}>Réinitialise complètement l'application : toutes les données locales seront supprimées définitivement.</p>
+            <button className="btn btn-danger" onClick={resetAllData}>Réinitialiser toutes les données</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------- App shell ---------------------------- */
+function App(){
+  const [ready, setReady] = useState(false);
+  const [session, setSession] = useState(null);
+  const [page, setPage] = useState('dashboard');
+  const [dark, setDark] = useState(false);
+  const [clock, setClock] = useState(new Date());
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const [settings, setSettingsState] = useState(LS.get('gg_settings', {nomAssociation:'Cercle', devise:'FCFA'}));
+  const [membres, setMembresState] = useState([]);
+  const [users, setUsersState] = useState([]);
+  const [types, setTypesState] = useState([]);
+  const [paiements, setPaiementsState] = useState([]);
+  const [activites, setActivitesState] = useState([]);
+  const [documents, setDocumentsState] = useState([]);
+  const [receiptModal, setReceiptModal] = useState(null);
+
+  useEffect(()=>{
+    seedIfEmpty();
+    ensureDefaultPasswords().then(()=>{
+      setSettingsState(LS.get('gg_settings', {}));
+      setMembresState(LS.get('gg_membres', []));
+      setUsersState(LS.get('gg_users', []));
+      setTypesState(LS.get('gg_cotisation_types', []));
+      setPaiementsState(LS.get('gg_paiements', []));
+      setActivitesState(LS.get('gg_activites', []));
+      setDocumentsState(LS.get('gg_documents', []));
+      const sess = LS.get('gg_session', null);
+      if(sess){
+        const u = LS.get('gg_users', []).find(x=>x.id===sess.id);
+        if(u) setSession(u);
+      }
+      setReady(true);
+    });
+  }, []);
+
+  const setMembres = (v) => { setMembresState(v); LS.set('gg_membres', v); };
+  const setUsers = (v) => { setUsersState(v); LS.set('gg_users', v); };
+  const setTypes = (v) => { setTypesState(v); LS.set('gg_cotisation_types', v); };
+  const setPaiements = (v) => { setPaiementsState(v); LS.set('gg_paiements', v); };
+  const setActivites = (v) => { setActivitesState(v); LS.set('gg_activites', v); };
+  const setDocuments = (v) => { setDocumentsState(v); LS.set('gg_documents', v); };
+  const setSettings = (v) => { setSettingsState(v); LS.set('gg_settings', v); };
+
+  function handleLogin(u){ setSession(u); LS.set('gg_session', {id:u.id}); setPage('dashboard'); }
+  function handleRegister(membre, user){
+    setMembres([...membres, membre]);
+    setUsers([...users, user]);
+    handleLogin(user);
+  }
+  function handleLogout(){ setSession(null); localStorage.removeItem('gg_session'); }
+  function goTo(p){ setPage(p); }
+
+  useEffect(()=>{
+    if(settings.couleurPrimaire) document.documentElement.style.setProperty('--primary', settings.couleurPrimaire);
+    if(settings.couleurAccent) document.documentElement.style.setProperty('--gold', settings.couleurAccent);
+  }, [settings.couleurPrimaire, settings.couleurAccent]);
+
+  useEffect(()=>{
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  }, [dark]);
+
+  useEffect(()=>{
+    const t = setInterval(()=>setClock(new Date()), 1000);
+    return ()=>clearInterval(t);
+  }, []);
+
+  if(!ready) return null;
+  if(!session) return <Login onLogin={handleLogin} onRegister={handleRegister} settings={settings} membres={membres}/>;
+
+  const visibleNav = NAV.filter(n => n.roles.includes(session.role));
+  const currentNav = NAV.find(n=>n.id===page) || NAV[0];
+  const currentMembre = membres.find(m=>m.id===session.membreId);
+  const canEdit = ['admin','responsable','secretaire'].includes(session.role);
+
+  function renderPage(){
+    switch(page){
+      case 'dashboard': return <Dashboard settings={settings} currentUser={session} modules={visibleNav.filter(n=>n.id!=='dashboard')} onNavigate={goTo}/>;
+      case 'membres': return <Membres membres={membres} setMembres={setMembres} settings={settings} canEdit={session.role!=='membre' && session.role!=='tresorier'}/>;
+      case 'utilisateurs': return <Utilisateurs users={users} setUsers={setUsers} membres={membres} currentUser={session}/>;
+      case 'cotisations': return <Cotisations types={types} setTypes={setTypes} settings={settings}/>;
+      case 'paiements': return <Paiements paiements={paiements} setPaiements={setPaiements} membres={membres} types={types} settings={settings} onOpenReceipt={setReceiptModal}/>;
+      case 'recus': return <Recus paiements={paiements} membres={membres} types={types} settings={settings}/>;
+      case 'activites': return <Activites activites={activites} setActivites={setActivites} membres={membres}/>;
+      case 'documents': return <Documents documents={documents} setDocuments={setDocuments} membres={membres}/>;
+      case 'rapports': return <Rapports membres={membres} paiements={paiements} types={types} settings={settings}/>;
+      case 'parametres': return <Parametres settings={settings} setSettings={setSettings}/>;
+      default: return null;
+    }
+  }
+
+  const timeStr = clock.toLocaleTimeString('fr-FR');
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar no-print">
+        <div className="sidebar-brand">
+          <div className="brand-seal">
+            {settings.logo
+              ? <img src={settings.logo} alt="Logo" style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover'}}/>
+              : (settings.nomAssociation||'C').slice(0,1)}
+          </div>
+          <div className="brand-text">
+            <div className="name">{settings.nomAssociation || 'Cercle'}</div>
+            <div className="sub">Gestion de groupe</div>
+          </div>
+        </div>
+        <nav className="nav">
+          {visibleNav.map(n=>(
+            <button key={n.id} className={"nav-item "+(page===n.id?'active':'')} onClick={()=>goTo(n.id)}>
+              <span className="nav-icon">{n.icon}</span>{n.label}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <div className="user-chip">
+            <div className="user-avatar">{session.username.slice(0,2).toUpperCase()}</div>
+            <div>
+              <div style={{color:'#fff', fontWeight:600, fontSize:12.5}}>{session.username}</div>
+              <div style={{fontSize:11}}>{roleLabel(session.role)}</div>
+            </div>
+          </div>
+          <button className="logout-btn" onClick={handleLogout}>Se déconnecter</button>
+        </div>
+      </aside>
+
+      <div className="main">
+        <div className="topbar no-print">
+          <div className="topbar-left">
+            <span className="topbar-brand-icon">{settings.logo ? <img src={settings.logo} alt="" style={{width:22,height:22,borderRadius:6,objectFit:'cover'}}/> : '🤝🏽'}</span>
+            <div style={{minWidth:0}}>
+              <div className="page-eyebrow">{currentNav.label}</div>
+              <div className="page-title">{settings.nomAssociation || 'Cercle'}</div>
+              <div className="page-role">{session.username} · {roleLabel(session.role)}</div>
+            </div>
+          </div>
+          <div className="topbar-right">
+            <span className="clock-chip">{timeStr}</span>
+            <button className="theme-toggle" onClick={()=>setDark(d=>!d)} aria-label="Basculer le thème" title={dark ? 'Passer en mode clair' : 'Passer en mode sombre'}>
+              {dark ? '☀️' : '🌙'}
+            </button>
+            <div className="avatar-menu-wrap">
+              <button className="avatar-trigger" onClick={()=>setUserMenuOpen(v=>!v)}>
+                <div className="avatar-circle">{session.username.slice(0,1).toUpperCase()}</div>
+                <span className="avatar-caret">▾</span>
+              </button>
+              {userMenuOpen && (
+                <React.Fragment>
+                  <div className="avatar-menu-overlay" onClick={()=>setUserMenuOpen(false)}></div>
+                  <div className="avatar-dropdown">
+                    <div className="head">
+                      <div className="u">{session.username}</div>
+                      <div className="r">{roleLabel(session.role)}</div>
+                    </div>
+                    <button onClick={handleLogout}>Se déconnecter</button>
+                  </div>
+                </React.Fragment>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="content">
+          {renderPage()}
+        </div>
+
+        <nav className="bottom-nav no-print">
+          <div className="bottom-nav-track">
+            {visibleNav.map(n=>(
+              <button key={n.id} className={"bottom-nav-item "+(page===n.id?'active':'')} onClick={()=>goTo(n.id)}>
+                <span className="bn-icon">{n.icon}</span>{n.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+      </div>
+
+      {receiptModal && (
+        <Modal title="Reçu de paiement" onClose={()=>setReceiptModal(null)} width="460px">
+          <ReceiptView paiement={receiptModal} membres={membres} types={types} settings={settings}/>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
