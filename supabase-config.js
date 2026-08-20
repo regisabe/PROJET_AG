@@ -9,7 +9,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // Domaine technique utilisé pour transformer un "nom d'utilisateur"
 // en email Supabase Auth (les membres ne voient jamais cet email).
-const CERCLE_AUTH_DOMAIN = "cercle.local";
+const CERCLE_AUTH_DOMAIN = "cercle-app.org";
 
 const cercleSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
