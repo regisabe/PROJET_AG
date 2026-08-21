@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cercle — Connexion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --ink:#24221D; --muted:#6B6558; --paper:#F7F5EF; --surface:#FFFFFF;
+  --border:#E4E0D3; --primary:#C2540A; --primary-light:#E07C2E; --primary-dark:#7A3607;
+  --gold:#E8A33D; --gold-light:#F5C878; --danger:#B3452C; --success:#3F7D52;
+  --shadow: 0 1px 2px rgba(36,34,29,.05), 0 8px 24px rgba(36,34,29,.07);
+  --radius-lg:14px; --radius-md:9px;
+  color-scheme: light;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif; color:var(--ink); -webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(circle at 18% 15%, rgba(194,84,10,.09), transparent 42%),
+    radial-gradient(circle at 88% 80%, rgba(224,124,46,.08), transparent 45%),
+    var(--paper);
+  min-height:100vh; position:relative;
+}
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.045; mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+button{font-family:inherit; cursor:pointer;}
+input{font-family:inherit;}
+a{color:inherit;}
+:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+
+.rosette{position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:640px; height:640px; pointer-events:none; z-index:0; opacity:.4;}
+.rosette svg{width:100%; height:100%; animation:spin 220s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion: reduce){ .rosette svg{animation:none;} }
+
+.scene{position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 20px;}
+
+.brand-block{display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:30px;}
+.seal-wrap{position:relative; width:110px; height:110px; display:flex; align-items:center; justify-content:center; margin-bottom:18px;}
+.seal-dial{position:absolute; inset:0; opacity:.5;}
+.seal{
+  width:84px; height:84px; border-radius:50%; flex:none; position:relative;
+  background:radial-gradient(circle at 32% 28%, var(--gold-light), var(--gold) 60%, var(--primary-dark) 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,.4),
+    0 0 0 4px var(--paper),
+    0 0 0 5px var(--border),
+    0 8px 20px rgba(122,54,7,.22);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Fraunces',serif; font-weight:700; font-size:32px; color:var(--primary-dark);
+  overflow:hidden;
+  animation:breathe 5s ease-in-out infinite;
+}
+@keyframes breathe{
+  0%,100%{ box-shadow:inset 0 0 0 2px rgba(255,255,255,.4), 0 0 0 4px var(--paper), 0 0 0 5px var(--border), 0 8px 20px rgba(122,54,7,.22); }
+  50%{ box-shadow:inset 0 0 0 2px rgba(255,255,255,.4), 0 0 0 4px var(--paper), 0 0 0 5px var(--gold), 0 10px 26px rgba(122,54,7,.3); }
+}
+@media (prefers-reduced-motion: reduce){ .seal{animation:none;} }
+.seal img{width:100%; height:100%; object-fit:cover; border-radius:50%;}
+.wordmark-name{font-family:'Fraunces',serif; font-size:23px; font-weight:600; line-height:1.15; letter-spacing:-.01em;}
+.wordmark-sigle{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:5px;}
+
+.branding-data{display:none;}
+
+.card-wrap{position:relative; width:100%; max-width:376px;}
+.auth-card{
+  position:relative; width:100%; background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow); padding:38px 32px;
+  animation:cardIn .3s ease;
+}
+@keyframes cardIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+@media (prefers-reduced-motion: reduce){ .auth-card{animation:none;} }
+.login-title{font-family:'Fraunces',serif; font-size:22px; font-weight:600; margin-bottom:4px; text-align:center; letter-spacing:-.01em;}
+.login-sub{font-size:12.5px; color:var(--muted); margin-bottom:28px; text-align:center; line-height:1.5;}
+.field{margin-bottom:15px;}
+.field label{font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px; display:block;}
+.input{border:1.5px solid #D6D0BF; border-radius:var(--radius-md); padding:10px 12px; font-size:13.5px; width:100%; background:var(--paper); color:var(--ink); transition:border-color .12s ease, box-shadow .12s ease;}
+.input:hover{border-color:#C7C0AA;}
+.input:focus{outline:none; border-color:var(--primary-light); box-shadow:0 0 0 3px rgba(224,124,46,.16);}
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.pw-wrap{position:relative;}
+.pw-wrap .input{padding-right:40px;}
+.pw-toggle{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  background:none; border:none; padding:5px; display:flex; align-items:center; justify-content:center;
+  color:var(--muted); border-radius:6px;
+}
+.pw-toggle:hover{color:var(--ink); background:var(--border);}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; border-radius:var(--radius-md); border:1px solid transparent; padding:11px 14px; font-size:13.5px; font-weight:600; transition:transform .1s ease, box-shadow .12s ease, background .12s ease; width:100%;}
+.btn-primary{background:var(--primary); color:#fff; box-shadow:0 1px 2px rgba(122,54,7,.18);}
+.btn-primary:hover{background:var(--primary-light); box-shadow:0 3px 10px rgba(194,84,10,.28);}
+.btn-primary:active{transform:translateY(1px); box-shadow:0 1px 2px rgba(122,54,7,.18);}
+.btn:disabled{opacity:.5; cursor:not-allowed; transform:none;}
+.login-switch{margin-top:20px; padding-top:18px; border-top:1px solid var(--border); text-align:center; font-size:12.5px; color:var(--muted);}
+.link-btn{background:none; border:none; color:var(--primary); font-weight:600; font-size:12.5px; padding:0; text-decoration:underline; text-underline-offset:2px;}
+.link-btn:hover{color:var(--primary-light);}
+.error-msg{
+  color:var(--danger); background:rgba(179,69,44,.08); border:1px solid rgba(179,69,44,.18);
+  border-radius:var(--radius-md); padding:9px 12px; font-size:12.5px; margin-bottom:16px; text-align:center; line-height:1.4;
+}
+.hint-msg{color:var(--muted); font-size:11.5px; margin-top:16px; line-height:1.6; text-align:center;}
+.hidden{display:none !important;}
+
+@media(max-width:479px){
+  .rosette{width:420px; height:420px;}
+  .auth-card{padding:30px 22px;}
+  .two-col{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="rosette" aria-hidden="true">
+  <svg viewBox="0 0 400 400">
+    <circle cx="200" cy="200" r="188" fill="none" stroke="var(--primary)" stroke-opacity=".10" stroke-width="1"/>
+    <circle cx="200" cy="200" r="150" fill="none" stroke="var(--gold)" stroke-opacity=".14" stroke-width="1" stroke-dasharray="2 6"/>
+    <circle cx="200" cy="200" r="112" fill="none" stroke="var(--primary-dark)" stroke-opacity=".08" stroke-width="1"/>
+    <g fill="var(--primary)" fill-opacity=".22">
+      <circle cx="350" cy="200" r="3"/>
+      <circle cx="306.07" cy="306.07" r="3"/>
+      <circle cx="200" cy="350" r="3"/>
+      <circle cx="93.93" cy="306.07" r="3"/>
+      <circle cx="50" cy="200" r="3"/>
+      <circle cx="93.93" cy="93.93" r="3"/>
+      <circle cx="306.07" cy="93.93" r="3"/>
+    </g>
+    <circle cx="200" cy="50" r="6" fill="var(--gold)" fill-opacity=".16"/>
+    <circle cx="200" cy="50" r="3.5" fill="var(--gold)" fill-opacity=".55"/>
+  </svg>
+</div>
+
+<div class="scene">
+  <div class="brand-block">
+    <div class="seal-wrap">
+      <svg class="seal-dial" viewBox="0 0 110 110" aria-hidden="true">
+        <g stroke="var(--primary-dark)" stroke-opacity=".35" stroke-width="1.4" stroke-linecap="round">
+          <line x1="55" y1="2" x2="55" y2="8"/>
+          <line x1="55" y1="102" x2="55" y2="108"/>
+          <line x1="2" y1="55" x2="8" y2="55"/>
+          <line x1="102" y1="55" x2="108" y2="55"/>
+          <line x1="20.6" y1="20.6" x2="24.8" y2="24.8"/>
+          <line x1="89.4" y1="20.6" x2="85.2" y2="24.8"/>
+          <line x1="20.6" y1="89.4" x2="24.8" y2="85.2"/>
+          <line x1="89.4" y1="89.4" x2="85.2" y2="85.2"/>
+        </g>
+      </svg>
+      <div class="seal" id="brandSeal">C</div>
+    </div>
+    <div class="wordmark-name" id="brandName">Cercle</div>
+    <div class="wordmark-sigle" id="brandSigle"></div>
+  </div>
+
+  <div class="card-wrap">
+    <form class="auth-card" id="loginForm">
+      <div class="login-title">Connexion</div>
+      <div class="login-sub" id="loginSub">Accédez à votre espace de gestion</div>
+      <div class="field"><label>Nom d'utilisateur</label><input class="input" id="loginUsername" autofocus required></div>
+      <div class="field"><label>Mot de passe</label>
+        <div class="pw-wrap">
+          <input class="input" type="password" id="loginPassword" required>
+          <button type="button" class="pw-toggle" data-target="loginPassword" aria-label="Afficher le mot de passe"></button>
+        </div>
+      </div>
+      <div class="error-msg hidden" id="loginError"></div>
+      <button class="btn btn-primary" type="submit" id="loginBtn">Se connecter</button>
+      <div class="login-switch">Nouveau membre ? <button type="button" class="link-btn" id="showRegister">Créer mon profil</button></div>
+    </form>
+
+    <form class="auth-card hidden" id="registerForm">
+      <div class="login-title">Créer mon profil</div>
+      <div class="login-sub">Réservé aux membres — un administrateur pourra ensuite ajuster votre rôle et vos accès.</div>
+      <div class="two-col">
+        <div class="field"><label>Prénom</label><input class="input" id="regPrenom" required></div>
+        <div class="field"><label>Nom</label><input class="input" id="regNom" required></div>
+      </div>
+      <div class="two-col">
+        <div class="field"><label>Téléphone</label><input class="input" id="regTelephone"></div>
+        <div class="field"><label>Email (optionnel)</label><input class="input" type="email" id="regEmail"></div>
+      </div>
+      <div class="field"><label>Nom d'utilisateur</label><input class="input" id="regUsername" required></div>
+      <div class="two-col">
+        <div class="field"><label>Mot de passe</label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="regPassword" required>
+            <button type="button" class="pw-toggle" data-target="regPassword" aria-label="Afficher le mot de passe"></button>
+          </div>
+        </div>
+        <div class="field"><label>Confirmer</label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="regPassword2" required>
+            <button type="button" class="pw-toggle" data-target="regPassword2" aria-label="Afficher le mot de passe"></button>
+          </div>
+        </div>
+      </div>
+      <div class="error-msg hidden" id="registerError"></div>
+      <button class="btn btn-primary" type="submit" id="registerBtn">Créer mon profil et me connecter</button>
+      <div class="login-switch">Déjà un compte ? <button type="button" class="link-btn" id="showLogin">Se connecter</button></div>
+      <div class="hint-msg">Le mot de passe doit contenir au moins 6 caractères.</div>
+    </form>
+  </div>
+
+  <div class="branding-data">
+    <span id="brandDesc"></span>
+    <span id="brandMotto"></span>
+    <div id="brandValues"></div>
+  </div>
+</div>
+
+<script src="supabase-config.js"></script>
+<script>
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const loginError = document.getElementById('loginError');
+const registerError = document.getElementById('registerError');
+
+document.getElementById('showRegister').onclick = () => {
+  loginForm.classList.add('hidden');
+  registerForm.classList.remove('hidden');
+};
+document.getElementById('showLogin').onclick = () => {
+  registerForm.classList.add('hidden');
+  loginForm.classList.remove('hidden');
+};
+
+function showError(el, msg){ el.textContent = msg; el.classList.remove('hidden'); }
+function hideError(el){ el.classList.add('hidden'); }
+
+const eyeIcon = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const eyeOffIcon = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.4 20.4 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-3.22 4.36M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+document.querySelectorAll('.pw-toggle').forEach(btn => {
+  btn.innerHTML = eyeIcon;
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.target);
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.innerHTML = showing ? eyeIcon : eyeOffIcon;
+    btn.setAttribute('aria-label', showing ? 'Afficher le mot de passe' : 'Masquer le mot de passe');
+  });
+});
+
+// Redirige directement vers l'app si une session valide existe déjà.
+cercleSupabase.auth.getSession().then(({data}) => {
+  if (data && data.session) window.location.href = 'index.html';
+});
+
+// Charge l'identité de l'association (branding public, avant connexion).
+(async () => {
+  try {
+    const { data, error } = await cercleSupabase.from('settings').select('data').eq('id', 'main').single();
+    if (error || !data) return;
+    const s = data.data || {};
+    if (s.nomAssociation) {
+      document.getElementById('brandName').textContent = s.nomAssociation;
+      document.getElementById('brandSeal').textContent = s.nomAssociation.slice(0,1);
+      document.title = 'Cercle — ' + s.nomAssociation;
+      document.getElementById('loginSub').textContent = 'Accédez à votre espace de gestion — ' + s.nomAssociation;
+    }
+    if (s.logo) document.getElementById('brandSeal').innerHTML = '<img src="'+s.logo+'" alt="Logo">';
+    if (s.sigle) document.getElementById('brandSigle').textContent = s.sigle;
+    if (s.description) document.getElementById('brandDesc').textContent = s.description;
+    if (s.motto) {
+      const m = document.getElementById('brandMotto');
+      m.textContent = '« ' + s.motto + ' »';
+      m.classList.remove('hidden');
+    }
+    if (s.valeurs) {
+      const wrap = document.getElementById('brandValues');
+      s.valeurs.split(',').map(v=>v.trim()).filter(Boolean).forEach(v=>{
+        const span = document.createElement('span');
+        span.className = 'value-pill';
+        span.textContent = v;
+        wrap.appendChild(span);
+      });
+    }
+  } catch(e) { /* branding facultatif, on continue sans */ }
+})();
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError(loginError);
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Connexion…';
+  const { error } = await cercleSupabase.auth.signInWithPassword({
+    email: usernameToEmail(username),
+    password
+  });
+  btn.disabled = false; btn.textContent = 'Se connecter';
+  if (error) {
+    showError(loginError, "Identifiants invalides ou compte désactivé.");
+    return;
+  }
+  window.location.href = 'index.html';
+});
+
+registerForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError(registerError);
+  const prenom = document.getElementById('regPrenom').value.trim();
+  const nom = document.getElementById('regNom').value.trim();
+  const telephone = document.getElementById('regTelephone').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const password2 = document.getElementById('regPassword2').value;
+
+  if (!prenom || !nom) { showError(registerError, 'Merci de renseigner votre prénom et votre nom.'); return; }
+  if (!username) { showError(registerError, "Merci de choisir un nom d'utilisateur."); return; }
+  if (password.length < 6) { showError(registerError, 'Le mot de passe doit contenir au moins 6 caractères.'); return; }
+  if (password !== password2) { showError(registerError, 'Les mots de passe ne correspondent pas.'); return; }
+
+  const btn = document.getElementById('registerBtn');
+  btn.disabled = true; btn.textContent = 'Création…';
+
+  // prenom/nom/telephone/email/username partent dans les métadonnées du compte :
+  // c'est un trigger côté base (SECURITY DEFINER) qui crée ensuite les lignes
+  // "membres" et "app_users" en une seule transaction, sans jamais être bloqué
+  // par les policies RLS (contrairement à deux INSERT faits ici, côté client,
+  // par un utilisateur qui n'a pas encore de droits au moment de l'inscription).
+  const { data: signUpData, error: signUpError } = await cercleSupabase.auth.signUp({
+    email: usernameToEmail(username),
+    password,
+    options: { data: { username, prenom, nom, telephone, email } }
+  });
+
+  btn.disabled = false; btn.textContent = 'Créer mon profil et me connecter';
+
+  if (signUpError) {
+    const msg = String(signUpError.message||'').toLowerCase();
+    if (msg.includes('already registered')) {
+      showError(registerError, "Ce nom d'utilisateur est déjà pris, merci d'en choisir un autre.");
+    } else {
+      showError(registerError, "Impossible de créer le compte : " + signUpError.message);
+    }
+    return;
+  }
+
+  if (!signUpData.session) {
+    showError(registerError, "Compte créé mais non connecté automatiquement — vérifie que la confirmation par email est désactivée dans Supabase (Authentication > Providers > Email).");
+    return;
+  }
+
+  window.location.href = 'index.html';
+});
+</script>
+</body>
+</html>
